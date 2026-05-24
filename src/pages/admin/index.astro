@@ -1,0 +1,226 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Agenda"
+  description="Panel de administracion de reservas de Lumina Estetica."
+>
+  <section class="page-section admin-page">
+    <SectionHeading
+      eyebrow="Administracion"
+      title="Agenda de reservas"
+      text="Gestiona solicitudes, confirma horarios y revisa el flujo diario del centro."
+    />
+
+    <div class="admin-shell">
+      <aside class="admin-panel">
+        <div class="metric">
+          <span>Pendientes</span>
+          <strong data-metric="pendiente">0</strong>
+        </div>
+        <div class="metric">
+          <span>Confirmadas</span>
+          <strong data-metric="confirmada">0</strong>
+        </div>
+        <div class="metric">
+          <span>Completadas</span>
+          <strong data-metric="completada">0</strong>
+        </div>
+        <div class="metric">
+          <span>Canceladas</span>
+          <strong data-metric="cancelada">0</strong>
+        </div>
+      </aside>
+
+      <div class="admin-panel agenda-board">
+        <div class="agenda-toolbar">
+          <div>
+            <p class="eyebrow">Reservas</p>
+            <h2>Solicitudes registradas</h2>
+          </div>
+          <div class="status-tabs" role="tablist" aria-label="Filtrar reservas">
+            <button type="button" data-filter="todas" class="is-active">Todas</button>
+            <button type="button" data-filter="pendiente">Pendientes</button>
+            <button type="button" data-filter="confirmada">Confirmadas</button>
+          </div>
+        </div>
+
+        <div class="admin-filters">
+          <label>
+            Fecha
+            <input type="date" id="date-filter" />
+          </label>
+          <label>
+            Profesional
+            <select id="professional-filter">
+              <option value="">Todas</option>
+              <option value="Camila Araya">Camila Araya</option>
+              <option value="Valentina Rios">Valentina Rios</option>
+              <option value="Equipo Lumina">Equipo Lumina</option>
+            </select>
+          </label>
+          <button type="button" class="button button--secondary" id="clear-filters">Limpiar</button>
+          <button type="button" class="button" id="export-csv">Exportar CSV</button>
+        </div>
+
+        <div class="appointment-list" id="appointment-list"></div>
+        <p class="empty-state" id="empty-state">
+          Todavia no hay reservas. Crea una desde la pagina "Reservar".
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script type="module">
+    import { appointmentStore, formatCreatedAt, formatDate, statusLabels } from "/agenda.js";
+
+    const list = document.querySelector("#appointment-list");
+    const emptyState = document.querySelector("#empty-state");
+    const filterButtons = document.querySelectorAll("[data-filter]");
+    const dateFilter = document.querySelector("#date-filter");
+    const professionalFilter = document.querySelector("#professional-filter");
+    const clearFilters = document.querySelector("#clear-filters");
+    const exportButton = document.querySelector("#export-csv");
+    let currentFilter = "todas";
+
+    function escapeHtml(value = "") {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderMetrics(appointments) {
+      ["pendiente", "confirmada", "completada", "cancelada"].forEach((status) => {
+        const node = document.querySelector(`[data-metric="${status}"]`);
+        if (node) {
+          node.textContent = appointments.filter((appointment) => appointment.status === status).length;
+        }
+      });
+    }
+
+    function getFilteredAppointments() {
+      const appointments = appointmentStore.all();
+      return appointments.filter((appointment) => {
+        const matchesStatus = currentFilter === "todas" || appointment.status === currentFilter;
+        const matchesDate = !dateFilter.value || appointment.date === dateFilter.value;
+        const matchesProfessional =
+          !professionalFilter.value || appointment.professional === professionalFilter.value;
+
+        return matchesStatus && matchesDate && matchesProfessional;
+      });
+    }
+
+    function buildWhatsAppHref(appointment) {
+      const message = `Hola ${appointment.name}, te escribimos de Lumina Estetica por tu reserva de ${appointment.service} para el ${formatDate(appointment.date)} a las ${appointment.time}.`;
+      const phone = String(appointment.phone || "").replace(/\D/g, "");
+      return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    }
+
+    function exportCsv() {
+      const appointments = getFilteredAppointments();
+      const headers = ["Estado", "Nombre", "Telefono", "Servicio", "Profesional", "Fecha", "Hora", "Notas"];
+      const rows = appointments.map((appointment) => [
+        statusLabels[appointment.status],
+        appointment.name,
+        appointment.phone,
+        appointment.service,
+        appointment.professional,
+        appointment.date,
+        appointment.time,
+        appointment.notes || ""
+      ]);
+      const csv = [headers, ...rows]
+        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "reservas-lumina.csv";
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function render() {
+      const appointments = appointmentStore.all();
+      const filtered = getFilteredAppointments();
+
+      renderMetrics(appointments);
+      list.innerHTML = "";
+      emptyState.hidden = filtered.length > 0;
+
+      filtered.forEach((appointment) => {
+        const article = document.createElement("article");
+        article.className = `appointment-card is-${appointment.status}`;
+        const notes = escapeHtml(appointment.notes);
+        article.innerHTML = `
+          <div class="appointment-card__main">
+            <div>
+              <span class="status-pill">${statusLabels[appointment.status]}</span>
+              <h3>${escapeHtml(appointment.name)}</h3>
+              <p>${escapeHtml(appointment.service)}</p>
+            </div>
+            <div class="appointment-date">
+              <strong>${formatDate(appointment.date)}</strong>
+              <span>${escapeHtml(appointment.time)}</span>
+            </div>
+          </div>
+          <dl>
+            <div><dt>Telefono</dt><dd>${escapeHtml(appointment.phone)}</dd></div>
+            <div><dt>Profesional</dt><dd>${escapeHtml(appointment.professional)}</dd></div>
+            <div><dt>Ingreso</dt><dd>${formatCreatedAt(appointment.createdAt)}</dd></div>
+            ${notes ? `<div><dt>Notas</dt><dd>${notes}</dd></div>` : ""}
+          </dl>
+          <div class="appointment-actions">
+            <a href="${buildWhatsAppHref(appointment)}" target="_blank" rel="noreferrer">WhatsApp</a>
+            <button type="button" data-action="confirmada" data-id="${appointment.id}">Confirmar</button>
+            <button type="button" data-action="completada" data-id="${appointment.id}">Completar</button>
+            <button type="button" data-action="cancelada" data-id="${appointment.id}">Cancelar</button>
+            <button type="button" data-action="delete" data-id="${appointment.id}">Eliminar</button>
+          </div>
+        `;
+        list.append(article);
+      });
+    }
+
+    filterButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        filterButtons.forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        currentFilter = button.dataset.filter;
+        render();
+      });
+    });
+
+    dateFilter.addEventListener("change", render);
+    professionalFilter.addEventListener("change", render);
+    clearFilters.addEventListener("click", () => {
+      currentFilter = "todas";
+      dateFilter.value = "";
+      professionalFilter.value = "";
+      filterButtons.forEach((item) => item.classList.remove("is-active"));
+      document.querySelector('[data-filter="todas"]')?.classList.add("is-active");
+      render();
+    });
+    exportButton.addEventListener("click", exportCsv);
+
+    list.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-action]");
+      if (!button) return;
+
+      if (button.dataset.action === "delete") {
+        appointmentStore.remove(button.dataset.id);
+      } else {
+        appointmentStore.updateStatus(button.dataset.id, button.dataset.action);
+      }
+      render();
+    });
+
+    render();
+  </script>
+</BaseLayout>

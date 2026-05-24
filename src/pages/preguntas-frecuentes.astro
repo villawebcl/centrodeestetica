@@ -1,0 +1,35 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { faqs } from "@data/faqs";
+import { site } from "@data/site";
+---
+
+<BaseLayout
+  title="Preguntas frecuentes"
+  description="Preguntas frecuentes sobre tratamientos, reservas y cuidados en Lumina Estetica."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="FAQ"
+      title="Resolvemos tus dudas antes de reservar."
+      text="Informacion clara para que llegues a tu primera visita con tranquilidad."
+    />
+
+    <div class="faq-list">
+      {
+        faqs.map((faq) => (
+          <details class="faq-item">
+            <summary>{faq.question}</summary>
+            <p>{faq.answer}</p>
+          </details>
+        ))
+      }
+    </div>
+
+    <div class="conversion-strip">
+      <span>Si tienes una pregunta especifica, podemos orientarte antes de agendar.</span>
+      <a href={site.whatsappHref} target="_blank" rel="noreferrer">Escribir por WhatsApp</a>
+    </div>
+  </section>
+</BaseLayout>

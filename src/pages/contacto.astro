@@ -1,0 +1,67 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { services } from "@data/services";
+import { site } from "@data/site";
+---
+
+<BaseLayout
+  title="Contacto"
+  description="Contacto, horarios y solicitud de evaluacion en Lumina Estetica."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Contacto"
+      title="Agenda una evaluacion o cuentanos que tratamiento buscas."
+      text="Respondemos tus consultas con calma y te ayudamos a elegir el horario o tratamiento mas adecuado."
+    />
+
+    <div class="contact-layout">
+      <aside class="contact-box">
+        <ul class="contact-list">
+          <li>
+            <span>WhatsApp</span>
+            <a href={site.whatsappHref} target="_blank" rel="noreferrer">{site.phone}</a>
+          </li>
+          <li>
+            <span>Correo</span>
+            <a href={`mailto:${site.email}`}>{site.email}</a>
+          </li>
+          <li>
+            <span>Direccion</span>
+            {site.address}
+          </li>
+          <li>
+            <span>Horario</span>
+            {site.hours}
+          </li>
+        </ul>
+      </aside>
+
+      <form class="contact-box form">
+        <label>
+          Nombre
+          <input name="name" type="text" placeholder="Tu nombre" />
+        </label>
+        <label>
+          Telefono
+          <input name="phone" type="tel" placeholder="+56 9 1234 5678" />
+        </label>
+        <label>
+          Servicio de interes
+          <select name="service">
+            <option value="">Selecciona una opcion</option>
+            {services.map((service) => <option value={service.name}>{service.name}</option>)}
+          </select>
+        </label>
+        <label>
+          Mensaje
+          <textarea name="message" placeholder="Cuentanos que necesitas"></textarea>
+        </label>
+        <a class="button" href={site.whatsappHref} target="_blank" rel="noreferrer">
+          Enviar por WhatsApp
+        </a>
+      </form>
+    </div>
+  </section>
+</BaseLayout>

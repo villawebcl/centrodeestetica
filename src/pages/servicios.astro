@@ -1,0 +1,41 @@
+---
+import ServiceCard from "@components/ServiceCard.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { services } from "@data/services";
+import { site } from "@data/site";
+
+const categories = [...new Set(services.map((service) => service.category))];
+---
+
+<BaseLayout
+  title="Servicios"
+  description="Servicios esteticos faciales y corporales de Lumina Estetica."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Tratamientos"
+      title="Elige tu tratamiento o comienza con una evaluacion personalizada."
+      text="Cada servicio se adapta segun tu piel, objetivo y frecuencia recomendada por nuestra especialista."
+    />
+    <div class="grid grid--3">
+      {services.map((service) => <ServiceCard service={service} />)}
+    </div>
+  </section>
+
+  <section class="page-section">
+    <div class="promo-band">
+      <div>
+        <p class="eyebrow">Categorias disponibles</p>
+        <h2>{categories.join(", ")}</h2>
+        <p>
+          Si no sabes que tratamiento elegir, agenda una evaluacion y te
+          orientaremos con una recomendacion clara y segura.
+        </p>
+      </div>
+      <a class="button" href={site.ctaHref}>
+        Pedir recomendacion
+      </a>
+    </div>
+  </section>
+</BaseLayout>

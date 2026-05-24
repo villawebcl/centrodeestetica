@@ -1,0 +1,152 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { services } from "@data/services";
+import { site } from "@data/site";
+
+const slots = ["10:00", "11:30", "13:00", "15:30", "17:00", "18:30"];
+const today = new Date();
+const dates = Array.from({ length: 8 }, (_, index) => {
+  const date = new Date(today);
+  date.setDate(today.getDate() + index + 1);
+  return date.toISOString().slice(0, 10);
+});
+---
+
+<BaseLayout
+  title="Reservar hora"
+  description="Agenda una evaluacion o tratamiento en Lumina Estetica."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Reserva online"
+      title="Elige tu tratamiento y solicita una hora."
+      text="Te contactaremos para confirmar disponibilidad, resolver dudas y dejar tu visita coordinada."
+    />
+
+    <div class="booking-layout">
+      <form class="booking-panel booking-form" id="booking-form">
+        <div class="form-grid">
+          <label>
+            Nombre completo
+            <input name="name" type="text" placeholder="Ej: Sofia Martinez" required />
+          </label>
+          <label>
+            Telefono
+            <input name="phone" type="tel" placeholder="+56 9 1234 5678" required />
+          </label>
+        </div>
+
+        <label>
+          Tratamiento
+          <select name="service" required>
+            <option value="">Selecciona una opcion</option>
+            {services.map((service) => <option value={service.name}>{service.name}</option>)}
+          </select>
+        </label>
+
+        <label>
+          Profesional
+          <select name="professional" required>
+            <option value="Camila Araya">Camila Araya</option>
+            <option value="Valentina Rios">Valentina Rios</option>
+            <option value="Equipo Lumina">Primera profesional disponible</option>
+          </select>
+        </label>
+
+        <div>
+          <span class="field-label">Fecha</span>
+          <div class="slot-grid date-grid" data-date-grid>
+            {
+              dates.map((date, index) => (
+                <label class="choice-card">
+                  <input type="radio" name="date" value={date} required checked={index === 0} />
+                  <span data-date-label={date}>{date}</span>
+                </label>
+              ))
+            }
+          </div>
+        </div>
+
+        <div>
+          <span class="field-label">Hora preferida</span>
+          <div class="slot-grid">
+            {
+              slots.map((slot, index) => (
+                <label class="choice-card">
+                  <input type="radio" name="time" value={slot} required checked={index === 1} />
+                  <span>{slot}</span>
+                </label>
+              ))
+            }
+          </div>
+        </div>
+
+        <label>
+          Comentario opcional
+          <textarea
+            name="notes"
+            placeholder="Cuéntanos si tienes piel sensible, embarazo, alergias o una preferencia horaria."
+          ></textarea>
+        </label>
+
+        <button class="button" type="submit">Solicitar reserva</button>
+        <p class="form-note" id="booking-feedback" aria-live="polite"></p>
+      </form>
+
+      <aside class="booking-panel booking-summary">
+        <p class="eyebrow">Tu visita</p>
+        <h2>Confirmacion cercana y sin presion.</h2>
+        <p>
+          La solicitud queda registrada como pendiente. Nuestro equipo revisa la
+          disponibilidad y confirma por telefono o WhatsApp.
+        </p>
+        <div class="summary-list">
+          <div>
+            <span>Evaluacion</span>
+            <strong>30 min sin costo</strong>
+          </div>
+          <div>
+            <span>Horario</span>
+            <strong>{site.hours}</strong>
+          </div>
+          <div>
+            <span>Direccion</span>
+            <strong>{site.address}</strong>
+          </div>
+        </div>
+        <a class="button button--secondary" href={site.whatsappHref} target="_blank" rel="noreferrer">
+          Consultar por WhatsApp
+        </a>
+      </aside>
+    </div>
+  </section>
+
+  <script type="module">
+    import { appointmentStore, formatDate } from "/agenda.js";
+
+    document.querySelectorAll("[data-date-label]").forEach((node) => {
+      node.textContent = formatDate(node.dataset.dateLabel);
+    });
+
+    const form = document.querySelector("#booking-form");
+    const feedback = document.querySelector("#booking-feedback");
+
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const appointment = appointmentStore.create({
+        name: data.get("name"),
+        phone: data.get("phone"),
+        service: data.get("service"),
+        professional: data.get("professional"),
+        date: data.get("date"),
+        time: data.get("time"),
+        notes: data.get("notes")
+      });
+
+      feedback.textContent = `Solicitud recibida para ${formatDate(appointment.date)} a las ${appointment.time}. Te contactaremos para confirmar.`;
+      form.reset();
+    });
+  </script>
+</BaseLayout>

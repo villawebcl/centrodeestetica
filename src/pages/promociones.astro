@@ -1,0 +1,39 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { promotions } from "@data/promotions";
+import { site } from "@data/site";
+---
+
+<BaseLayout
+  title="Promociones"
+  description="Promociones y planes esteticos de Lumina Estetica en Santiago."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Promociones"
+      title="Planes seleccionados para cuidar tu piel y bienestar este mes."
+      text="Opciones pensadas para comenzar con una experiencia completa, con orientacion profesional y agenda simple."
+    />
+
+    <div class="grid grid--3">
+      {
+        promotions.map((promotion) => (
+          <article class="promo-card">
+            <span class="status-pill">{promotion.tag}</span>
+            <h3>{promotion.name}</h3>
+            <p>{promotion.description}</p>
+            <div class="price-row">
+              <strong>{promotion.price}</strong>
+              <span>{promotion.before}</span>
+            </div>
+            <ul>
+              {promotion.includes.map((item) => <li>{item}</li>)}
+            </ul>
+            <a class="button button--secondary" href={site.ctaHref}>Reservar promocion</a>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

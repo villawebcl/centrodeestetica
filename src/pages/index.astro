@@ -1,0 +1,180 @@
+---
+import ServiceCard from "@components/ServiceCard.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { services } from "@data/services";
+import { site } from "@data/site";
+import { testimonials } from "@data/testimonials";
+import { promotions } from "@data/promotions";
+import { professionals } from "@data/professionals";
+
+const featuredServices = services.slice(0, 3);
+---
+
+<BaseLayout title={site.name}>
+  <section class="hero">
+    <div class="hero__intro">
+      <p class="eyebrow">Estetica avanzada · Santiago</p>
+      <h1>Cuidado facial y corporal</h1>
+      <p class="hero__since">Evaluacion personalizada sin costo · Lunes a sabado</p>
+      <div class="hero-actions">
+        <a class="button" href={site.ctaHref}>Agenda tu evaluacion</a>
+        <a class="button button--secondary" href="/servicios">Ver servicios</a>
+      </div>
+      <div class="proof-row" aria-label="Sellos de confianza">
+        <span>Evaluacion personalizada</span>
+        <span>Protocolos higienicos</span>
+        <span>Atencion profesional</span>
+      </div>
+    </div>
+    <div class="hero__photo" aria-hidden="true"></div>
+  </section>
+
+  <section class="page-section compact-section">
+    <div class="conversion-strip">
+      <span>Agenda simple por WhatsApp, atencion cercana y recomendaciones segun tu piel.</span>
+      <a href="/contacto">Contactar al centro</a>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Servicios destacados"
+      title="Tratamientos pensados para cuidar tu piel, tu cuerpo y tu bienestar."
+      text="Elige una atencion puntual o comienza con una evaluacion para definir un plan de cuidado progresivo."
+    />
+    <div class="grid grid--3">
+      {featuredServices.map((service) => <ServiceCard service={service} />)}
+    </div>
+  </section>
+
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Promociones"
+      title="Planes del mes para comenzar con una experiencia completa."
+      text="Tratamientos seleccionados para renovar tu piel, cuidar tu cuerpo o definir tu mirada."
+    />
+    <div class="grid grid--3">
+      {
+        promotions.map((promotion) => (
+          <article class="promo-card">
+            <span class="status-pill">{promotion.tag}</span>
+            <h3>{promotion.name}</h3>
+            <p>{promotion.description}</p>
+            <div class="price-row">
+              <strong>{promotion.price}</strong>
+              <span>{promotion.before}</span>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="section-band section-band--dark">
+    <section class="page-section">
+      <SectionHeading
+        eyebrow="Nuestra experiencia"
+        title="Un espacio calido con estandares profesionales."
+      />
+      <div class="features-asymmetric">
+        <article class="feature feature--large">
+          <strong>Evaluacion honesta</strong>
+          <p>Te orientamos con recomendaciones claras, sin promesas irreales ni tratamientos innecesarios. Cada sesion comienza con una lectura real de tu piel y tus objetivos.</p>
+        </article>
+        <div class="features-stack">
+          <article class="feature feature--compact">
+            <strong>Ambiente cuidado</strong>
+            <p>Cabinas limpias, luz suave, productos seleccionados y una atencion pausada.</p>
+          </article>
+          <article class="feature feature--compact">
+            <strong>Seguimiento cercano</strong>
+            <p>Te indicamos cuidados posteriores y frecuencia sugerida para mantener resultados.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Equipo"
+      title="Atencion profesional y cercana."
+      text="Cada visita es guiada por especialistas que priorizan cuidado, higiene y una recomendacion honesta."
+    />
+    <div class="grid grid--3">
+      {
+        professionals.map((professional) => (
+          <article class="professional-card">
+            <div class="professional-avatar" aria-hidden="true">{professional.name.slice(0, 1)}</div>
+            <span>{professional.experience}</span>
+            <h3>{professional.name}</h3>
+            <strong>{professional.role}</strong>
+            <p>{professional.specialty}</p>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+
+  <div class="section-band section-band--sage">
+    <section class="page-section">
+      <SectionHeading
+        eyebrow="Como trabajamos"
+        title="Un recorrido simple para sentirte acompanada de principio a fin."
+        text="Desde la primera consulta hasta el cuidado posterior, mantenemos un proceso claro, calmado y profesional."
+      />
+      <div class="steps-flow">
+        <div class="step">
+          <span class="step__num">01</span>
+          <h3>Evaluamos</h3>
+          <p>Conversamos sobre tus objetivos, antecedentes relevantes y rutina actual.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">02</span>
+          <h3>Personalizamos</h3>
+          <p>Definimos el tratamiento, activos y frecuencia mas adecuada para ti.</p>
+        </div>
+        <div class="step">
+          <span class="step__num">03</span>
+          <h3>Acompanamos</h3>
+          <p>Entregamos cuidados posteriores y resolvemos tus dudas despues de la sesion.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="page-section">
+    <div class="promo-band promo-band--dark">
+      <div>
+        <p class="eyebrow">Promocion del mes</p>
+        <h2>Limpieza facial profunda + evaluacion personalizada.</h2>
+        <p>
+          Ideal para renovar la piel, mejorar textura y recibir una recomendacion
+          profesional para tus proximos cuidados.
+        </p>
+      </div>
+      <a class="button" href={site.ctaHref}>
+        Consultar promo
+      </a>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <SectionHeading eyebrow="Experiencias" title="Clientes que vuelven por el trato." />
+    <div class="grid grid--3">
+      {
+        testimonials.map((testimonial) => (
+          <article class="testimonial">
+            <div class="testimonial__stars" aria-label="5 de 5 estrellas">★★★★★</div>
+            <p>"{testimonial.text}"</p>
+            <div class="testimonial__footer">
+              <strong>{testimonial.name}</strong>
+              <span>{testimonial.treatment}</span>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </section>
+</BaseLayout>

@@ -1,0 +1,45 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { site } from "@data/site";
+---
+
+<BaseLayout
+  title="Politica de reservas"
+  description="Politica de reservas, atrasos y reprogramaciones de Lumina Estetica."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Reservas"
+      title="Politicas claras para cuidar tu tiempo y el de nuestro equipo."
+      text="Queremos que cada visita sea ordenada, tranquila y respetuosa para todas nuestras clientas."
+    />
+
+    <div class="policy-grid">
+      <article class="feature">
+        <strong>Confirmacion</strong>
+        <p>Tu solicitud queda pendiente hasta que nuestro equipo confirme disponibilidad por telefono o WhatsApp.</p>
+      </article>
+      <article class="feature">
+        <strong>Reprogramaciones</strong>
+        <p>Solicita cambios con al menos 24 horas de anticipacion para ofrecerte una nueva alternativa.</p>
+      </article>
+      <article class="feature">
+        <strong>Atrasos</strong>
+        <p>Un atraso mayor a 15 minutos puede reducir la duracion del servicio o requerir reagendar.</p>
+      </article>
+      <article class="feature">
+        <strong>Abonos</strong>
+        <p>Algunos planes o promociones pueden requerir abono previo para asegurar el horario.</p>
+      </article>
+    </div>
+
+    <div class="promo-band">
+      <div>
+        <p class="eyebrow">Agenda responsable</p>
+        <h2>Si necesitas ayuda, contactanos antes de tu visita.</h2>
+      </div>
+      <a class="button" href={site.whatsappHref} target="_blank" rel="noreferrer">Contactar</a>
+    </div>
+  </section>
+</BaseLayout>

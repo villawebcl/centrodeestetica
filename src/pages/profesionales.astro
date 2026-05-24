@@ -1,0 +1,42 @@
+---
+import SectionHeading from "@components/SectionHeading.astro";
+import BaseLayout from "@layouts/BaseLayout.astro";
+import { professionals } from "@data/professionals";
+import { site } from "@data/site";
+---
+
+<BaseLayout
+  title="Profesionales"
+  description="Equipo profesional de Lumina Estetica."
+>
+  <section class="page-section">
+    <SectionHeading
+      eyebrow="Equipo"
+      title="Profesionales que cuidan cada detalle de tu experiencia."
+      text="Atencion cercana, protocolos claros y recomendaciones personalizadas para cada visita."
+    />
+
+    <div class="grid grid--3">
+      {
+        professionals.map((professional) => (
+          <article class="professional-card">
+            <div class="professional-avatar" aria-hidden="true">{professional.name.slice(0, 1)}</div>
+            <span>{professional.experience}</span>
+            <h3>{professional.name}</h3>
+            <strong>{professional.role}</strong>
+            <p>{professional.specialty}</p>
+            <p>{professional.bio}</p>
+          </article>
+        ))
+      }
+    </div>
+
+    <div class="promo-band">
+      <div>
+        <p class="eyebrow">Primera visita</p>
+        <h2>Si no sabes con quien agendar, te orientamos segun tu objetivo.</h2>
+      </div>
+      <a class="button" href={site.ctaHref}>Agendar evaluacion</a>
+    </div>
+  </section>
+</BaseLayout>

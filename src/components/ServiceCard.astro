@@ -1,0 +1,23 @@
+---
+interface Props {
+  service: {
+    name: string;
+    category: string;
+    duration: string;
+    price: string;
+    description: string;
+  };
+}
+
+const { service } = Astro.props;
+---
+
+<article class="service-card">
+  <div class="service-card__meta">
+    <span class={`service-card__category service-card__category--${service.category.toLowerCase()}`}>{service.category}</span>
+    <span>{service.duration}</span>
+  </div>
+  <h3>{service.name}</h3>
+  <p>{service.description}</p>
+  <strong>{service.price}</strong>
+</article>
