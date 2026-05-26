@@ -1,13 +1,29 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { faqs } from "@data/faqs";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener FAQs
+const { data: faqs } = await supabase
+  .from("faqs")
+  .select("*")
+  .order("orden", { ascending: true });
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  whatsappHref: `https://wa.me/${config?.whatsapp_number}?text=Hola%20${config?.nombre_negocio}%2C%20tengo%20una%20pregunta`
+};
 ---
 
 <BaseLayout
   title="Preguntas frecuentes"
-  description="Preguntas frecuentes sobre tratamientos, reservas y cuidados en Lumina Estetica."
+  description={`Preguntas frecuentes sobre tratamientos, reservas y cuidados en ${site.name}.`}
 >
   <section class="page-section">
     <SectionHeading
@@ -18,10 +34,10 @@ import { site } from "@data/site";
 
     <div class="faq-list">
       {
-        faqs.map((faq) => (
+        faqs?.map((faq) => (
           <details class="faq-item">
-            <summary>{faq.question}</summary>
-            <p>{faq.answer}</p>
+            <summary>{faq.pregunta}</summary>
+            <p>{faq.respuesta}</p>
           </details>
         ))
       }
@@ -33,3 +49,4 @@ import { site } from "@data/site";
     </div>
   </section>
 </BaseLayout>
+

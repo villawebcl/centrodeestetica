@@ -1,13 +1,29 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { professionals } from "@data/professionals";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener profesionales
+const { data: professionals } = await supabase
+  .from("profesionales")
+  .select("*")
+  .filter("activo", "eq", true);
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  ctaHref: "/reservar"
+};
 ---
 
 <BaseLayout
   title="Profesionales"
-  description="Equipo profesional de Lumina Estetica."
+  description={`Equipo profesional de ${site.name}.`}
 >
   <section class="page-section">
     <SectionHeading
@@ -18,13 +34,13 @@ import { site } from "@data/site";
 
     <div class="grid grid--3">
       {
-        professionals.map((professional) => (
+        professionals?.map((professional) => (
           <article class="professional-card">
             <div class="professional-avatar" aria-hidden="true">{professional.name.slice(0, 1)}</div>
-            <span>{professional.experience}</span>
+            <span>8 años de experiencia</span>
             <h3>{professional.name}</h3>
-            <strong>{professional.role}</strong>
-            <p>{professional.specialty}</p>
+            <strong>{professional.rol}</strong>
+            <p>{professional.especialidad}</p>
             <p>{professional.bio}</p>
           </article>
         ))
@@ -40,3 +56,4 @@ import { site } from "@data/site";
     </div>
   </section>
 </BaseLayout>
+

@@ -1,11 +1,34 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
+import { supabase } from "@lib/supabase";
+
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener profesionales para los filtros
+const { data: professionals } = await supabase
+  .from("profesionales")
+  .select("nombre")
+  .filter("activo", "eq", true)
+  .order("nombre");
+
+// 3. Obtener servicios para los filtros
+const { data: services } = await supabase
+  .from("servicios")
+  .select("nombre")
+  .filter("activo", "eq", true)
+  .order("nombre");
+
+const siteName = config?.nombre_negocio || "Lumina Estetica";
 ---
 
 <BaseLayout
-  title="Agenda"
-  description="Panel de administracion de reservas de Lumina Estetica."
+  title={`Admin | ${siteName}`}
+  description={`Panel de administracion de reservas de ${siteName}.`}
 >
   <section class="page-section admin-page">
     <SectionHeading
@@ -40,50 +63,150 @@ import BaseLayout from "@layouts/BaseLayout.astro";
             <p class="eyebrow">Reservas</p>
             <h2>Solicitudes registradas</h2>
           </div>
-          <div class="status-tabs" role="tablist" aria-label="Filtrar reservas">
-            <button type="button" data-filter="todas" class="is-active">Todas</button>
-            <button type="button" data-filter="pendiente">Pendientes</button>
-            <button type="button" data-filter="confirmada">Confirmadas</button>
+          <div class="agenda-toolbar__right">
+            <a href="/admin/servicios" class="button button--secondary agenda-toolbar__nav">Gestionar Servicios</a>
+            <div class="status-tabs" role="tablist" aria-label="Filtrar reservas">
+              <button type="button" data-filter="todas" class="is-active">Todas</button>
+              <button type="button" data-filter="pendiente">Pendientes</button>
+              <button type="button" data-filter="confirmada">Confirmadas</button>
+            </div>
           </div>
         </div>
 
         <div class="admin-filters">
-          <label>
-            Fecha
-            <input type="date" id="date-filter" />
-          </label>
-          <label>
-            Profesional
-            <select id="professional-filter">
-              <option value="">Todas</option>
-              <option value="Camila Araya">Camila Araya</option>
-              <option value="Valentina Rios">Valentina Rios</option>
-              <option value="Equipo Lumina">Equipo Lumina</option>
-            </select>
-          </label>
-          <button type="button" class="button button--secondary" id="clear-filters">Limpiar</button>
-          <button type="button" class="button" id="export-csv">Exportar CSV</button>
+          <!-- Fila 1: búsqueda + orden + vista -->
+          <div class="admin-filters__row admin-filters__row--primary">
+            <label class="admin-filters__search-wrap">
+              <span class="sr-only">Buscar cliente</span>
+              <input type="search" id="search-filter" placeholder="Buscar por nombre o teléfono…" autocomplete="off" />
+            </label>
+            <label>
+              Ordenar
+              <select id="sort-filter">
+                <option value="reciente">Más reciente primero</option>
+                <option value="antigua">Más antigua primero</option>
+                <option value="proxima">Cita más próxima</option>
+                <option value="lejana">Cita más lejana</option>
+              </select>
+            </label>
+            <div class="view-toggle" role="group" aria-label="Cambiar vista">
+              <button type="button" class="view-toggle__btn is-active" id="view-list" aria-label="Vista lista" title="Vista lista">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="1" y="2" width="14" height="2.5" rx="1" fill="currentColor"/>
+                  <rect x="1" y="6.75" width="14" height="2.5" rx="1" fill="currentColor"/>
+                  <rect x="1" y="11.5" width="14" height="2.5" rx="1" fill="currentColor"/>
+                </svg>
+              </button>
+              <button type="button" class="view-toggle__btn" id="view-grid" aria-label="Vista grilla" title="Vista grilla">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+                  <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+                  <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+                  <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Fila 2: fechas + profesional + servicio + acciones -->
+          <div class="admin-filters__row admin-filters__row--secondary">
+            <label>
+              Desde
+              <input type="date" id="date-from-filter" />
+            </label>
+            <label>
+              Hasta
+              <input type="date" id="date-to-filter" />
+            </label>
+            <label>
+              Profesional
+              <select id="professional-filter">
+                <option value="">Todos</option>
+                {professionals?.map(pro => <option value={pro.nombre}>{pro.nombre}</option>)}
+              </select>
+            </label>
+            <label>
+              Servicio
+              <select id="service-filter">
+                <option value="">Todos</option>
+                {services?.map(s => <option value={s.nombre}>{s.nombre}</option>)}
+              </select>
+            </label>
+            <button type="button" class="button button--secondary" id="clear-filters">Limpiar</button>
+            <button type="button" class="button button--secondary" id="export-csv">Exportar CSV</button>
+          </div>
         </div>
 
         <div class="appointment-list" id="appointment-list"></div>
-        <p class="empty-state" id="empty-state">
-          Todavia no hay reservas. Crea una desde la pagina "Reservar".
+        <p class="empty-state" id="empty-state" hidden>
+          Todavia no hay reservas.
         </p>
       </div>
     </div>
   </section>
 
-  <script type="module">
-    import { appointmentStore, formatCreatedAt, formatDate, statusLabels } from "/agenda.js";
-
-    const list = document.querySelector("#appointment-list");
-    const emptyState = document.querySelector("#empty-state");
-    const filterButtons = document.querySelectorAll("[data-filter]");
-    const dateFilter = document.querySelector("#date-filter");
+  <script type="module" is:inline>
+    const list               = document.querySelector("#appointment-list");
+    const emptyState         = document.querySelector("#empty-state");
+    const filterButtons      = document.querySelectorAll("[data-filter]");
+    const searchFilter       = document.querySelector("#search-filter");
+    const sortFilter         = document.querySelector("#sort-filter");
+    const dateFromFilter     = document.querySelector("#date-from-filter");
+    const dateToFilter       = document.querySelector("#date-to-filter");
     const professionalFilter = document.querySelector("#professional-filter");
-    const clearFilters = document.querySelector("#clear-filters");
-    const exportButton = document.querySelector("#export-csv");
+    const serviceFilter      = document.querySelector("#service-filter");
+    const clearFilters       = document.querySelector("#clear-filters");
+    const exportCsv          = document.querySelector("#export-csv");
+    const viewListBtn        = document.querySelector("#view-list");
+    const viewGridBtn        = document.querySelector("#view-grid");
     let currentFilter = "todas";
+    let searchDebounce;
+
+    /* ── View toggle ────────────────────────────── */
+    const savedView = localStorage.getItem("admin-view") || "list";
+    if (savedView === "grid") {
+      list.classList.add("appointment-list--grid");
+      viewListBtn.classList.remove("is-active");
+      viewGridBtn.classList.add("is-active");
+    }
+
+    viewListBtn.addEventListener("click", () => {
+      list.classList.remove("appointment-list--grid");
+      viewListBtn.classList.add("is-active");
+      viewGridBtn.classList.remove("is-active");
+      localStorage.setItem("admin-view", "list");
+    });
+
+    viewGridBtn.addEventListener("click", () => {
+      list.classList.add("appointment-list--grid");
+      viewGridBtn.classList.add("is-active");
+      viewListBtn.classList.remove("is-active");
+      localStorage.setItem("admin-view", "grid");
+    });
+
+    const statusLabels = {
+      pendiente: "Pendiente",
+      confirmada: "Confirmada",
+      completada: "Completada",
+      cancelada: "Cancelada"
+    };
+
+    function formatDate(dateStr) {
+      return new Intl.DateTimeFormat("es-CL", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short"
+      }).format(new Date(`${dateStr}T12:00:00`));
+    }
+
+    function formatCreatedAt(value) {
+      return new Intl.DateTimeFormat("es-CL", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(new Date(value));
+    }
 
     function escapeHtml(value = "") {
       return String(value)
@@ -94,94 +217,108 @@ import BaseLayout from "@layouts/BaseLayout.astro";
         .replaceAll("'", "&#039;");
     }
 
-    function renderMetrics(appointments) {
-      ["pendiente", "confirmada", "completada", "cancelada"].forEach((status) => {
-        const node = document.querySelector(`[data-metric="${status}"]`);
-        if (node) {
-          node.textContent = appointments.filter((appointment) => appointment.status === status).length;
-        }
-      });
+    function buildParams() {
+      const params = new URLSearchParams();
+      if (currentFilter !== "todas")    params.set("estado",      currentFilter);
+      if (searchFilter.value.trim())    params.set("buscar",      searchFilter.value.trim());
+      if (sortFilter.value)             params.set("orden",       sortFilter.value);
+      if (dateFromFilter.value)         params.set("desde",       dateFromFilter.value);
+      if (dateToFilter.value)           params.set("hasta",       dateToFilter.value);
+      if (professionalFilter.value)     params.set("profesional", professionalFilter.value);
+      if (serviceFilter.value)          params.set("servicio",    serviceFilter.value);
+      return params;
     }
 
-    function getFilteredAppointments() {
-      const appointments = appointmentStore.all();
-      return appointments.filter((appointment) => {
-        const matchesStatus = currentFilter === "todas" || appointment.status === currentFilter;
-        const matchesDate = !dateFilter.value || appointment.date === dateFilter.value;
-        const matchesProfessional =
-          !professionalFilter.value || appointment.professional === professionalFilter.value;
+    async function fetchAppointments() {
+      const response = await fetch(`/api/admin/reservas?${buildParams()}`);
+      const result   = await response.json();
+      if (!response.ok) { console.error("Error fetching:", result.error); return []; }
+      return result.data || [];
+    }
 
-        return matchesStatus && matchesDate && matchesProfessional;
+    async function fetchMetrics() {
+      const response = await fetch("/api/admin/reservas?mode=metrics");
+      const result = await response.json();
+      if (!response.ok) return;
+
+      const counts = result.data.reduce((acc, curr) => {
+        acc[curr.estado] = (acc[curr.estado] || 0) + 1;
+        return acc;
+      }, {});
+
+      ["pendiente", "confirmada", "completada", "cancelada"].forEach((status) => {
+        const node = document.querySelector(`[data-metric="${status}"]`);
+        if (node) node.textContent = counts[status] || 0;
       });
     }
 
     function buildWhatsAppHref(appointment) {
-      const message = `Hola ${appointment.name}, te escribimos de Lumina Estetica por tu reserva de ${appointment.service} para el ${formatDate(appointment.date)} a las ${appointment.time}.`;
-      const phone = String(appointment.phone || "").replace(/\D/g, "");
+      const message = `Hola ${appointment.cliente_nombre}, te escribimos de la clinica por tu reserva de ${appointment.servicio_nombre} para el ${formatDate(appointment.fecha)} a las ${appointment.hora.slice(0, 5)}.`;
+      const phone = String(appointment.cliente_telefono || "").replace(/\D/g, "");
       return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     }
 
-    function exportCsv() {
-      const appointments = getFilteredAppointments();
-      const headers = ["Estado", "Nombre", "Telefono", "Servicio", "Profesional", "Fecha", "Hora", "Notas"];
-      const rows = appointments.map((appointment) => [
-        statusLabels[appointment.status],
-        appointment.name,
-        appointment.phone,
-        appointment.service,
-        appointment.professional,
-        appointment.date,
-        appointment.time,
-        appointment.notes || ""
-      ]);
-      const csv = [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","))
-        .join("\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "reservas-lumina.csv";
-      link.click();
-      URL.revokeObjectURL(url);
+    const actionsByStatus = {
+      pendiente:  ["confirmada", "cancelada", "delete"],
+      confirmada: ["completada", "cancelada", "delete"],
+      completada: ["delete"],
+      cancelada:  ["delete"],
+    };
+
+    const actionLabels = {
+      confirmada: "Confirmar",
+      completada: "Completar",
+      cancelada:  "Cancelar",
+      delete:     "Eliminar",
+    };
+
+    function buildActionButtons(appointment) {
+      const status = getSafeStatus(appointment.estado);
+      const actions = actionsByStatus[status] ?? ["delete"];
+      return actions.map(action =>
+        action === "delete"
+          ? `<button type="button" data-action="delete" data-id="${appointment.id}">${actionLabels.delete}</button>`
+          : `<button type="button" data-action="${action}" data-id="${appointment.id}">${actionLabels[action]}</button>`
+      ).join("");
     }
 
-    function render() {
-      const appointments = appointmentStore.all();
-      const filtered = getFilteredAppointments();
+    function getSafeStatus(status) {
+      return Object.hasOwn(statusLabels, status) ? status : "pendiente";
+    }
 
-      renderMetrics(appointments);
+    async function render() {
+      const filtered = await fetchAppointments();
+      fetchMetrics();
+
       list.innerHTML = "";
       emptyState.hidden = filtered.length > 0;
 
       filtered.forEach((appointment) => {
         const article = document.createElement("article");
-        article.className = `appointment-card is-${appointment.status}`;
-        const notes = escapeHtml(appointment.notes);
+        const status = getSafeStatus(appointment.estado);
+        article.className = `appointment-card is-${status}`;
+        const notes = escapeHtml(appointment.notas);
         article.innerHTML = `
           <div class="appointment-card__main">
             <div>
-              <span class="status-pill">${statusLabels[appointment.status]}</span>
-              <h3>${escapeHtml(appointment.name)}</h3>
-              <p>${escapeHtml(appointment.service)}</p>
+              <span class="status-pill">${statusLabels[status]}</span>
+              <h3>${escapeHtml(appointment.cliente_nombre)}</h3>
+              <p>${escapeHtml(appointment.servicio_nombre)}</p>
             </div>
             <div class="appointment-date">
-              <strong>${formatDate(appointment.date)}</strong>
-              <span>${escapeHtml(appointment.time)}</span>
+              <strong>${formatDate(appointment.fecha)}</strong>
+              <span>${appointment.hora.slice(0, 5)}</span>
             </div>
           </div>
           <dl>
-            <div><dt>Telefono</dt><dd>${escapeHtml(appointment.phone)}</dd></div>
-            <div><dt>Profesional</dt><dd>${escapeHtml(appointment.professional)}</dd></div>
-            <div><dt>Ingreso</dt><dd>${formatCreatedAt(appointment.createdAt)}</dd></div>
+            <div><dt>Telefono</dt><dd>${escapeHtml(appointment.cliente_telefono)}</dd></div>
+            <div><dt>Profesional</dt><dd>${escapeHtml(appointment.profesional_nombre)}</dd></div>
+            <div><dt>Ingreso</dt><dd>${formatCreatedAt(appointment.creado_en)}</dd></div>
             ${notes ? `<div><dt>Notas</dt><dd>${notes}</dd></div>` : ""}
           </dl>
           <div class="appointment-actions">
-            <a href="${buildWhatsAppHref(appointment)}" target="_blank" rel="noreferrer">WhatsApp</a>
-            <button type="button" data-action="confirmada" data-id="${appointment.id}">Confirmar</button>
-            <button type="button" data-action="completada" data-id="${appointment.id}">Completar</button>
-            <button type="button" data-action="cancelada" data-id="${appointment.id}">Cancelar</button>
-            <button type="button" data-action="delete" data-id="${appointment.id}">Eliminar</button>
+            <a href="${buildWhatsAppHref(appointment)}" target="_blank" rel="noreferrer" class="button--wa">WhatsApp</a>
+            ${buildActionButtons(appointment)}
           </div>
         `;
         list.append(article);
@@ -197,26 +334,82 @@ import BaseLayout from "@layouts/BaseLayout.astro";
       });
     });
 
-    dateFilter.addEventListener("change", render);
+    searchFilter.addEventListener("input", () => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(render, 380);
+    });
+    sortFilter.addEventListener("change", render);
+    dateFromFilter.addEventListener("change", render);
+    dateToFilter.addEventListener("change", render);
     professionalFilter.addEventListener("change", render);
+    serviceFilter.addEventListener("change", render);
+
     clearFilters.addEventListener("click", () => {
-      currentFilter = "todas";
-      dateFilter.value = "";
+      currentFilter            = "todas";
+      searchFilter.value       = "";
+      sortFilter.value         = "reciente";
+      dateFromFilter.value     = "";
+      dateToFilter.value       = "";
       professionalFilter.value = "";
+      serviceFilter.value      = "";
       filterButtons.forEach((item) => item.classList.remove("is-active"));
       document.querySelector('[data-filter="todas"]')?.classList.add("is-active");
       render();
     });
-    exportButton.addEventListener("click", exportCsv);
 
-    list.addEventListener("click", (event) => {
+    exportCsv.addEventListener("click", async () => {
+      const params = buildParams();
+
+      const response = await fetch(`/api/admin/reservas?${params.toString()}`);
+      const result = await response.json();
+      if (!response.ok) return;
+
+      const rows = result.data || [];
+      const headers = ["Nombre", "Servicio", "Profesional", "Fecha", "Hora", "Telefono", "Estado", "Ingreso"];
+      const csv = [
+        headers.join(","),
+        ...rows.map(r => [
+          `"${(r.cliente_nombre || "").replace(/"/g, '""')}"`,
+          `"${(r.servicio_nombre || "").replace(/"/g, '""')}"`,
+          `"${(r.profesional_nombre || "").replace(/"/g, '""')}"`,
+          r.fecha,
+          r.hora.slice(0, 5),
+          `"${(r.cliente_telefono || "").replace(/"/g, '""')}"`,
+          r.estado,
+          formatCreatedAt(r.creado_en)
+        ].join(","))
+      ].join("\n");
+
+      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reservas_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    list.addEventListener("click", async (event) => {
       const button = event.target.closest("[data-action]");
       if (!button) return;
 
-      if (button.dataset.action === "delete") {
-        appointmentStore.remove(button.dataset.id);
+      const { action, id } = button.dataset;
+
+      if (action === "delete") {
+        if (!confirm("¿Seguro que quieres eliminar esta reserva?")) return;
+        const response = await fetch("/api/admin/reservas", {
+          method: "DELETE",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id })
+        });
+        if (!response.ok) console.error(await response.json());
       } else {
-        appointmentStore.updateStatus(button.dataset.id, button.dataset.action);
+        const response = await fetch("/api/admin/reservas", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ id, estado: action })
+        });
+        if (!response.ok) console.error(await response.json());
       }
       render();
     });

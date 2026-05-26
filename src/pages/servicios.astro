@@ -2,15 +2,42 @@
 import ServiceCard from "@components/ServiceCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { services } from "@data/services";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
 
-const categories = [...new Set(services.map((service) => service.category))];
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener servicios
+const { data: serviceRows } = await supabase
+  .from("servicios")
+  .select("*")
+  .filter("activo", "eq", true)
+  .order("orden", { ascending: true });
+
+const services = serviceRows ?? [];
+const visibleServices = [
+  ...new Map(
+    services.map((service) => [
+      String(service.nombre || service.id).trim().toLowerCase(),
+      service
+    ])
+  ).values()
+];
+const categories = [
+  ...new Set(visibleServices.map((service) => service.categoria).filter(Boolean))
+];
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  ctaHref: "/reservar"
+};
 ---
 
 <BaseLayout
   title="Servicios"
-  description="Servicios esteticos faciales y corporales de Lumina Estetica."
+  description={`Servicios esteticos faciales y corporales de ${site.name}.`}
 >
   <section class="page-section">
     <SectionHeading
@@ -19,7 +46,7 @@ const categories = [...new Set(services.map((service) => service.category))];
       text="Cada servicio se adapta segun tu piel, objetivo y frecuencia recomendada por nuestra especialista."
     />
     <div class="grid grid--3">
-      {services.map((service) => <ServiceCard service={service} />)}
+      {visibleServices.map((service) => <ServiceCard service={service} />)}
     </div>
   </section>
 

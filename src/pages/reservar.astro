@@ -1,8 +1,27 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { services } from "@data/services";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener servicios para el select
+const { data: services } = await supabase
+  .from("servicios")
+  .select("nombre")
+  .filter("activo", "eq", true)
+  .order("nombre");
+
+// 3. Obtener profesionales para el select
+const { data: professionals } = await supabase
+  .from("profesionales")
+  .select("nombre")
+  .filter("activo", "eq", true)
+  .order("nombre");
 
 const slots = ["10:00", "11:30", "13:00", "15:30", "17:00", "18:30"];
 const today = new Date();
@@ -11,11 +30,18 @@ const dates = Array.from({ length: 8 }, (_, index) => {
   date.setDate(today.getDate() + index + 1);
   return date.toISOString().slice(0, 10);
 });
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  address: config?.direccion,
+  hours: config?.horarios,
+  whatsappHref: `https://wa.me/${config?.whatsapp_number}?text=Hola%20${config?.nombre_negocio}%2C%20tengo%20una%20duda%20con%20la%20reserva`
+};
 ---
 
 <BaseLayout
   title="Reservar hora"
-  description="Agenda una evaluacion o tratamiento en Lumina Estetica."
+  description={`Agenda una evaluacion o tratamiento en ${site.name}.`}
 >
   <section class="page-section">
     <SectionHeading
@@ -41,16 +67,15 @@ const dates = Array.from({ length: 8 }, (_, index) => {
           Tratamiento
           <select name="service" required>
             <option value="">Selecciona una opcion</option>
-            {services.map((service) => <option value={service.name}>{service.name}</option>)}
+            {services?.map((service) => <option value={service.nombre}>{service.nombre}</option>)}
           </select>
         </label>
 
         <label>
           Profesional
           <select name="professional" required>
-            <option value="Camila Araya">Camila Araya</option>
-            <option value="Valentina Rios">Valentina Rios</option>
-            <option value="Equipo Lumina">Primera profesional disponible</option>
+            <option value="">Selecciona una opcion</option>
+            {professionals?.map((pro) => <option value={pro.nombre}>{pro.nombre}</option>)}
           </select>
         </label>
 
@@ -90,7 +115,7 @@ const dates = Array.from({ length: 8 }, (_, index) => {
           ></textarea>
         </label>
 
-        <button class="button" type="submit">Solicitar reserva</button>
+        <button class="button" type="submit" id="submit-btn">Solicitar reserva</button>
         <p class="form-note" id="booking-feedback" aria-live="polite"></p>
       </form>
 
@@ -122,8 +147,14 @@ const dates = Array.from({ length: 8 }, (_, index) => {
     </div>
   </section>
 
-  <script type="module">
-    import { appointmentStore, formatDate } from "/agenda.js";
+  <script type="module" is:inline>
+    function formatDate(dateStr) {
+      return new Intl.DateTimeFormat("es-CL", {
+        weekday: "short",
+        day: "2-digit",
+        month: "short"
+      }).format(new Date(`${dateStr}T12:00:00`));
+    }
 
     document.querySelectorAll("[data-date-label]").forEach((node) => {
       node.textContent = formatDate(node.dataset.dateLabel);
@@ -131,22 +162,41 @@ const dates = Array.from({ length: 8 }, (_, index) => {
 
     const form = document.querySelector("#booking-form");
     const feedback = document.querySelector("#booking-feedback");
+    const submitBtn = document.querySelector("#submit-btn");
 
-    form?.addEventListener("submit", (event) => {
+    form?.addEventListener("submit", async (event) => {
       event.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Enviando...";
+      
       const data = new FormData(form);
-      const appointment = appointmentStore.create({
-        name: data.get("name"),
-        phone: data.get("phone"),
-        service: data.get("service"),
-        professional: data.get("professional"),
-        date: data.get("date"),
-        time: data.get("time"),
-        notes: data.get("notes")
+      
+      const response = await fetch("/api/reservas", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: data.get("name"),
+          phone: data.get("phone"),
+          service: data.get("service"),
+          professional: data.get("professional"),
+          date: data.get("date"),
+          time: data.get("time"),
+          notes: data.get("notes")
+        })
       });
+      const result = await response.json();
 
-      feedback.textContent = `Solicitud recibida para ${formatDate(appointment.date)} a las ${appointment.time}. Te contactaremos para confirmar.`;
-      form.reset();
+      if (!response.ok) {
+        feedback.textContent = result.error || "Hubo un error al procesar tu solicitud. Por favor intenta de nuevo.";
+        feedback.className = "form-note form-note--error";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Solicitar reserva";
+      } else {
+        feedback.textContent = `¡Solicitud recibida! Te contactaremos para confirmar tu cita el ${formatDate(data.get("date"))} a las ${data.get("time")}.`;
+        feedback.className = "form-note form-note--success";
+        form.reset();
+        submitBtn.textContent = "Solicitud enviada";
+      }
     });
   </script>
 </BaseLayout>

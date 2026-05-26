@@ -1,13 +1,29 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { promotions } from "@data/promotions";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener promociones
+const { data: promotions } = await supabase
+  .from("promociones")
+  .select("*")
+  .filter("activo", "eq", true);
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  ctaHref: "/reservar"
+};
 ---
 
 <BaseLayout
   title="Promociones"
-  description="Promociones y planes esteticos de Lumina Estetica en Santiago."
+  description={`Promociones y planes esteticos de ${site.name} en Santiago.`}
 >
   <section class="page-section">
     <SectionHeading
@@ -18,17 +34,17 @@ import { site } from "@data/site";
 
     <div class="grid grid--3">
       {
-        promotions.map((promotion) => (
+        promotions?.map((promotion) => (
           <article class="promo-card">
             <span class="status-pill">{promotion.tag}</span>
             <h3>{promotion.name}</h3>
-            <p>{promotion.description}</p>
+            <p>{promotion.descripcion}</p>
             <div class="price-row">
-              <strong>{promotion.price}</strong>
-              <span>{promotion.before}</span>
+              <strong>{promotion.precio}</strong>
+              <span>{promotion.precio_antes}</span>
             </div>
             <ul>
-              {promotion.includes.map((item) => <li>{item}</li>)}
+              {promotion.incluye?.map((item: string) => <li>{item}</li>)}
             </ul>
             <a class="button button--secondary" href={site.ctaHref}>Reservar promocion</a>
           </article>

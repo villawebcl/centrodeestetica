@@ -1,0 +1,52 @@
+---
+import BaseLayout from "@layouts/BaseLayout.astro";
+import SectionHeading from "@components/SectionHeading.astro";
+import { getClientIp, isRateLimited } from "@lib/api";
+import { setAdminSessionCookie } from "@lib/adminAuth";
+
+let error = "";
+
+if (Astro.request.method === "POST") {
+  try {
+    const ip = getClientIp(Astro.request);
+    if (isRateLimited(`admin-login:${ip}`, 8, 15 * 60 * 1000)) {
+      error = "Demasiados intentos. Intenta nuevamente en unos minutos.";
+    } else {
+      const data = await Astro.request.formData();
+      const password = data.get("password");
+
+      if (password === import.meta.env.ADMIN_PASSWORD) {
+        await setAdminSessionCookie(Astro);
+        return Astro.redirect("/admin");
+      } else {
+        error = "Contraseña incorrecta";
+      }
+    }
+  } catch (e) {
+    console.error(e);
+  }
+}
+---
+
+<BaseLayout title="Login Admin" description="Acceso al panel de administración">
+  <section class="page-section">
+    <div style="max-width: 400px; margin: 0 auto;">
+      <SectionHeading
+        eyebrow="Seguridad"
+        title="Acceso Administrador"
+        text="Ingresa la contraseña para gestionar las reservas."
+      />
+      
+      <form method="POST" class="booking-panel" style="display: flex; flex-direction: column; gap: 1rem;">
+        <label>
+          Contraseña
+          <input type="password" name="password" required placeholder="••••••••" />
+        </label>
+        
+        {error && <p style="color: #e63946; font-size: 0.9rem;">{error}</p>}
+        
+        <button class="button" type="submit">Entrar al panel</button>
+      </form>
+    </div>
+  </section>
+</BaseLayout>

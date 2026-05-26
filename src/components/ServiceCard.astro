@@ -1,23 +1,39 @@
 ---
 interface Props {
   service: {
-    name: string;
-    category: string;
-    duration: string;
-    price: string;
-    description: string;
+    nombre?: string;
+    categoria?: string;
+    duracion?: string;
+    precio?: string;
+    descripcion?: string;
+    name?: string;
+    category?: string;
+    duration?: string;
+    price?: string;
+    description?: string;
   };
 }
 
 const { service } = Astro.props;
+
+// Normalizamos los nombres de los campos (BD en español -> Componente espera estos nombres)
+const data = {
+  name: service.nombre || service.name || "Sin nombre",
+  category: service.categoria || service.category || "General",
+  duration: service.duracion || service.duration || "",
+  price: service.precio || service.price || "",
+  description: service.descripcion || service.description || ""
+};
 ---
 
 <article class="service-card">
   <div class="service-card__meta">
-    <span class={`service-card__category service-card__category--${service.category.toLowerCase()}`}>{service.category}</span>
-    <span>{service.duration}</span>
+    <span class={`service-card__category service-card__category--${data.category.toLowerCase()}`}>
+      {data.category}
+    </span>
+    <span>{data.duration}</span>
   </div>
-  <h3>{service.name}</h3>
-  <p>{service.description}</p>
-  <strong>{service.price}</strong>
+  <h3>{data.name}</h3>
+  <p>{data.description}</p>
+  <strong>{data.price}</strong>
 </article>

@@ -10,8 +10,9 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
+    "@astrojs/node": "^9.5.5",
+    "@supabase/supabase-js": "^2.106.2",
     "astro": "^5.0.0",
     "typescript": "^5.6.0"
-  },
-  "devDependencies": {}
+  }
 }

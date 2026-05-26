@@ -2,21 +2,49 @@
 import ServiceCard from "@components/ServiceCard.astro";
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { services } from "@data/services";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
 import { testimonials } from "@data/testimonials";
-import { promotions } from "@data/promotions";
-import { professionals } from "@data/professionals";
 
-const featuredServices = services.slice(0, 3);
+// 1. Obtener configuración
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("*")
+  .single();
+
+// 2. Obtener servicios destacados
+const { data: services } = await supabase
+  .from("servicios")
+  .select("*")
+  .filter("activo", "eq", true)
+  .order("orden", { ascending: true })
+  .limit(3);
+
+// 3. Obtener promociones
+const { data: promotions } = await supabase
+  .from("promociones")
+  .select("*")
+  .filter("activo", "eq", true);
+
+// 4. Obtener profesionales
+const { data: professionals } = await supabase
+  .from("profesionales")
+  .select("*")
+  .filter("activo", "eq", true);
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  ctaHref: "/reservar",
+  // Mantenemos estas por ahora mientras migramos el resto
+  whatsappHref: `https://wa.me/${config?.whatsapp_number}?text=Hola%20${config?.nombre_negocio}%2C%20quiero%20agendar%20una%20evaluacion`
+};
 ---
 
 <BaseLayout title={site.name}>
   <section class="hero">
     <div class="hero__intro">
-      <p class="eyebrow">Estetica avanzada · Santiago</p>
+      <p class="eyebrow">{config?.tagline || "Estetica avanzada · Santiago"}</p>
       <h1>Cuidado facial y corporal</h1>
-      <p class="hero__since">Evaluacion personalizada sin costo · Lunes a sabado</p>
+      <p class="hero__since">{config?.horarios || "Evaluacion personalizada sin costo · Lunes a sabado"}</p>
       <div class="hero-actions">
         <a class="button" href={site.ctaHref}>Agenda tu evaluacion</a>
         <a class="button button--secondary" href="/servicios">Ver servicios</a>
@@ -32,7 +60,7 @@ const featuredServices = services.slice(0, 3);
 
   <section class="page-section compact-section">
     <div class="conversion-strip">
-      <span>Agenda simple por WhatsApp, atencion cercana y recomendaciones segun tu piel.</span>
+      <span>{config?.descripcion}</span>
       <a href="/contacto">Contactar al centro</a>
     </div>
   </section>
@@ -44,7 +72,7 @@ const featuredServices = services.slice(0, 3);
       text="Elige una atencion puntual o comienza con una evaluacion para definir un plan de cuidado progresivo."
     />
     <div class="grid grid--3">
-      {featuredServices.map((service) => <ServiceCard service={service} />)}
+      {services?.map((service) => <ServiceCard service={service} />)}
     </div>
   </section>
 
@@ -56,14 +84,14 @@ const featuredServices = services.slice(0, 3);
     />
     <div class="grid grid--3">
       {
-        promotions.map((promotion) => (
+        promotions?.map((promotion) => (
           <article class="promo-card">
             <span class="status-pill">{promotion.tag}</span>
             <h3>{promotion.name}</h3>
-            <p>{promotion.description}</p>
+            <p>{promotion.descripcion}</p>
             <div class="price-row">
-              <strong>{promotion.price}</strong>
-              <span>{promotion.before}</span>
+              <strong>{promotion.precio}</strong>
+              <span>{promotion.precio_antes}</span>
             </div>
           </article>
         ))
@@ -104,13 +132,15 @@ const featuredServices = services.slice(0, 3);
     />
     <div class="grid grid--3">
       {
-        professionals.map((professional) => (
+        professionals?.map((professional) => (
           <article class="professional-card">
-            <div class="professional-avatar" aria-hidden="true">{professional.name.slice(0, 1)}</div>
-            <span>{professional.experience}</span>
-            <h3>{professional.name}</h3>
-            <strong>{professional.role}</strong>
-            <p>{professional.specialty}</p>
+            <div class="professional-avatar" aria-hidden="true">
+              {professional.name ? professional.name.slice(0, 1) : "?"}
+            </div>
+            <span>8 años de experiencia</span>
+            <h3>{professional.name || "Profesional"}</h3>
+            <strong>{professional.rol || "Especialista"}</strong>
+            <p>{professional.especialidad || ""}</p>
           </article>
         ))
       }
