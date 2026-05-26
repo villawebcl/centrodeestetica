@@ -1,3 +1,4 @@
+export const prerender = false;
 import type { APIRoute } from "astro";
 import { cleanString, getClientIp, isRateLimited, json } from "@lib/api";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
