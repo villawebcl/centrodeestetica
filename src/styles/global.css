@@ -84,6 +84,16 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.status-pill {
+  display: inline-flex;
+  border-radius: 999px;
+  background: rgba(184, 149, 99, 0.14);
+  color: #8a6b39;
+  font-size: 0.72rem;
+  font-weight: 820;
+  padding: 3px 9px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
