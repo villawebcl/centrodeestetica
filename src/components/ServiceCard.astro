@@ -11,6 +11,8 @@ interface Props {
     duration?: string;
     price?: string;
     description?: string;
+    imagen_url?: string;
+    image?: string;
   };
 }
 
@@ -22,11 +24,13 @@ const data = {
   category: service.categoria || service.category || "General",
   duration: service.duracion || service.duration || "",
   price: service.precio || service.price || "",
-  description: service.descripcion || service.description || ""
+  description: service.descripcion || service.description || "",
+  image: service.imagen_url || service.image || ""
 };
 ---
 
 <article class="service-card">
+  {data.image && <img class="service-card__image" src={data.image} alt="" loading="lazy" decoding="async" />}
   <div class="service-card__meta">
     <span class={`service-card__category service-card__category--${data.category.toLowerCase()}`}>
       {data.category}

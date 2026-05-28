@@ -1,6 +1,8 @@
 ---
 import "../styles/global.css";
 import "../styles/admin.css";
+import { supabase } from "@lib/supabase";
+import { withTimeout } from "@lib/api";
 
 type Page = "reservas" | "servicios" | "profesionales" | "promociones" | "configuracion" | "cuenta";
 
@@ -10,7 +12,13 @@ interface Props {
   siteName?: string;
 }
 
-const { title = "Admin", currentPage, siteName = "Mi Centro" } = Astro.props;
+const { title = "Admin", currentPage, siteName } = Astro.props;
+const { data: layoutConfig } = await withTimeout(
+  supabase.from("configuracion").select("nombre_negocio").single(),
+  2500,
+  { data: null, error: null } as any
+);
+const resolvedSiteName = siteName || layoutConfig?.nombre_negocio || "Lumina Estetica";
 
 const nav: { group: string; items: { id: Page; label: string; href: string; icon: string }[] }[] = [
   {
@@ -52,12 +60,7 @@ const icons: Record<string, string> = {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
-      rel="stylesheet"
-    />
+    <script src="/admin-ui.js" is:inline></script>
     <title>{title} · Admin</title>
   </head>
 
@@ -69,9 +72,9 @@ const icons: Record<string, string> = {
         <div class="al-sidebar__inner">
 
           <div class="al-brand">
-            <div class="al-brand__mark" aria-hidden="true">{siteName[0]}</div>
+            <div class="al-brand__mark" aria-hidden="true">{resolvedSiteName[0]}</div>
             <div>
-              <strong class="al-brand__name">{siteName}</strong>
+              <strong class="al-brand__name">{resolvedSiteName}</strong>
               <span class="al-brand__sub">Panel Admin</span>
             </div>
           </div>
@@ -115,13 +118,14 @@ const icons: Record<string, string> = {
             <rect x="1" y="13" width="16" height="2" rx="1" fill="currentColor"/>
           </svg>
         </button>
-        <span class="al-mobile-title">{siteName}</span>
+        <span class="al-mobile-title">{resolvedSiteName}</span>
         <a href="/" class="al-mobile-back">Ver sitio →</a>
       </div>
 
       <!-- ── Main ─────────────────────────────────── -->
       <main class="al-main">
         <div class="al-content">
+          <button type="button" class="al-history-back" id="al-history-back">Volver atrás</button>
           <slot />
         </div>
       </main>
@@ -134,6 +138,12 @@ const icons: Record<string, string> = {
     <script type="module" is:inline>
       const hamburger = document.querySelector("#al-hamburger");
       const sidebar   = document.querySelector("#al-sidebar");
+      const backBtn   = document.querySelector("#al-history-back");
+
+      backBtn?.addEventListener("click", () => {
+        if (history.length > 1) history.back();
+        else window.location.href = "/admin";
+      });
 
       hamburger?.addEventListener("click", () => {
         const isOpen = sidebar.classList.toggle("is-open");

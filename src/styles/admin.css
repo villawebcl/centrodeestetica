@@ -56,7 +56,7 @@
   color: white;
   display: grid;
   place-items: center;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.15rem;
   font-weight: 600;
   flex-shrink: 0;
@@ -184,6 +184,55 @@
   max-width: 1280px;
 }
 
+.al-history-back {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.al-history-back:hover {
+  color: var(--ink);
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.admin-pagination span,
+.admin-loading {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.admin-loading {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+}
+
+.svc-card__image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 0 1rem;
+}
+
+.pro-avatar--image {
+  object-fit: cover;
+}
+
 /* ── Page header ────────────────────────────────────── */
 .al-page-header {
   display: flex;
@@ -205,7 +254,7 @@
 }
 
 .al-page-title {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 2.1rem;
   font-weight: 500;
   color: var(--ink);
@@ -260,7 +309,7 @@
 
 .kpi-card__count {
   display: block;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 2.6rem;
   font-weight: 500;
   color: var(--ink);
@@ -397,7 +446,7 @@
 
 .svc-card__name {
   margin: 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.3rem;
   font-weight: 500;
   line-height: 1.2;
@@ -453,7 +502,7 @@
   color: white;
   display: grid;
   place-items: center;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.3rem;
   font-weight: 600;
   flex-shrink: 0;
@@ -525,7 +574,7 @@
 
 .svc-dialog__header h2 {
   margin: 4px 0 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.9rem;
   font-weight: 500;
   line-height: 1.05;
@@ -753,7 +802,7 @@ input[type="color"] {
   color: white;
   display: grid;
   place-items: center;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.35rem;
   font-weight: 600;
   flex-shrink: 0;
@@ -778,7 +827,7 @@ input[type="color"] {
 }
 
 .login-title {
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.75rem;
   font-weight: 500;
   color: var(--ink);

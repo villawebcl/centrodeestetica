@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      PUBLIC_SUPABASE_URL: ${{ secrets.PUBLIC_SUPABASE_URL || 'https://example.supabase.co' }}
+      PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.PUBLIC_SUPABASE_ANON_KEY || 'test-anon-key' }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      ADMIN_SESSION_SECRET: ${{ secrets.ADMIN_SESSION_SECRET || 'ci-session-secret-with-enough-entropy' }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - name: Install Playwright browser
+        if: ${{ secrets.PUBLIC_SUPABASE_URL != '' && secrets.PUBLIC_SUPABASE_ANON_KEY != '' }}
+        run: npx playwright install --with-deps chromium
+      - name: E2E
+        if: ${{ secrets.PUBLIC_SUPABASE_URL != '' && secrets.PUBLIC_SUPABASE_ANON_KEY != '' }}
+        run: npm run test:e2e

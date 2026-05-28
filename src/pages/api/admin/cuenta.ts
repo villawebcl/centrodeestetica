@@ -1,7 +1,8 @@
 export const prerender = false;
 import type { APIRoute } from "astro";
-import { assertSameOrigin, isAdminSessionValid, hashPassword, verifyHashedPassword, safeEqual } from "@lib/adminAuth";
+import { assertSameOrigin, isAdminSessionValid, hashPassword, verifyHashedPassword, safeEqual, isStrongPassword } from "@lib/adminAuth";
 import { json } from "@lib/api";
+import { logAudit } from "@lib/audit";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
 
 export const PATCH: APIRoute = async ({ cookies, request }) => {
@@ -14,7 +15,9 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
   const confirm  = String(body.confirm_password  ?? "");
 
   if (!current || !next || !confirm) return json({ error: "Todos los campos son obligatorios." }, 400);
-  if (next.length < 8) return json({ error: "La contraseña nueva debe tener al menos 8 caracteres." }, 400);
+  if (!isStrongPassword(next)) {
+    return json({ error: "La contraseña nueva debe tener al menos 8 caracteres, mayúscula, minúscula, número y símbolo." }, 400);
+  }
   if (next !== confirm) return json({ error: "Las contraseñas no coinciden." }, 400);
 
   const supabase = createSupabaseAdminClient();
@@ -23,13 +26,10 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
     .select("password_hash")
     .single();
 
-  let isValid = false;
-  if (config?.password_hash) {
-    isValid = await verifyHashedPassword(current, config.password_hash);
-  } else {
-    const envPass = import.meta.env.ADMIN_PASSWORD ?? "";
-    isValid = envPass.length > 0 && safeEqual(current, envPass);
-  }
+  const envPass = import.meta.env.ADMIN_PASSWORD ?? "";
+  const isValid = config?.password_hash
+    ? await verifyHashedPassword(current, config.password_hash)
+    : isStrongPassword(envPass) && safeEqual(current, envPass);
 
   if (!isValid) return json({ error: "La contraseña actual es incorrecta." }, 403);
 
@@ -40,6 +40,7 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
     .eq("id", 1);
 
   if (dbError) return json({ error: dbError.message }, 500);
+  await logAudit({ action: "update_password", entity: "configuracion", entityId: "1" });
 
   return json({ ok: true });
 };

@@ -77,6 +77,12 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
             value={config?.horarios || ""}
             placeholder="Ej: Lunes a sábado, 10:00 a 19:30" />
         </label>
+        <label>
+          Horarios de reserva
+          <input type="text" name="horario_slots" id="cfg-horario-slots"
+            value={(config?.horario_slots || ["10:00", "11:30", "13:00", "15:30", "17:00", "18:30"]).join(", ")}
+            placeholder="Ej: 10:00, 11:30, 13:00, 15:30" />
+        </label>
       </fieldset>
 
       <fieldset class="config-section">
@@ -115,20 +121,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const form    = document.querySelector("#config-form");
     const saveBtn = document.querySelector("#save-btn");
 
-    function showToast(message, isError = false) {
-      const tc    = document.querySelector("#toast-container");
-      const toast = document.createElement("div");
-      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
-      toast.setAttribute("role", "status");
-      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
-      tc.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
-      setTimeout(() => {
-        toast.classList.remove("svc-toast--visible");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-      }, 4000);
-    }
-
     function syncColor(pickerId, hexId) {
       const picker = document.querySelector(pickerId);
       const hex    = document.querySelector(hexId);
@@ -154,6 +146,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         email:            fd.get("email"),
         direccion:        fd.get("direccion"),
         horarios:         fd.get("horarios"),
+        horario_slots:    String(fd.get("horario_slots") || "").split(",").map((slot) => slot.trim()),
         color_primario:   document.querySelector("#cfg-color-primario-hex").value,
         color_secundario: document.querySelector("#cfg-color-secundario-hex").value,
       };

@@ -7,6 +7,8 @@
   --line: rgba(90, 80, 140, 0.15);
   --rose: #b090b8;
   --rose-dark: #6a5088;
+  --brand-primary: var(--ink);
+  --brand-secondary: var(--rose-dark);
   --sage: #7a8890;
   --gold: #a08860;
   --ivory: #f8f4ff;
@@ -102,9 +104,9 @@ p {
   height: 36px;
   place-items: center;
   border-radius: 50%;
-  background: var(--ink);
+  background: var(--brand-primary);
   color: white;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.1rem;
   font-style: italic;
   font-weight: 500;
@@ -162,7 +164,7 @@ p {
   justify-content: center;
   min-height: 48px;
   border-radius: 999px;
-  background: var(--ink);
+  background: var(--brand-primary);
   color: white;
   font-size: 0.78rem;
   font-weight: 700;
@@ -218,6 +220,71 @@ p {
   box-shadow: 0 20px 52px rgba(31, 143, 95, 0.34);
 }
 
+.not-found {
+  min-height: 62vh;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: 18px;
+}
+
+.not-found h1 {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  line-height: 1;
+}
+
+.privacy-banner {
+  position: fixed;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  backdrop-filter: blur(18px);
+}
+
+.privacy-banner[hidden] {
+  display: none;
+}
+
+.privacy-banner p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.privacy-banner a,
+.privacy-consent a {
+  color: var(--brand-secondary);
+  font-weight: 800;
+  text-decoration: underline;
+}
+
+.privacy-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.privacy-consent input {
+  width: auto;
+  margin-top: 0.25rem;
+}
+
 .page-section {
   max-width: 1180px;
   margin: 0 auto;
@@ -249,7 +316,7 @@ p {
 
 .hero h1 {
   margin: 18px 0 20px;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2.8rem, 5.5vw, 5.6rem);
   font-style: normal;
   font-weight: 700;
@@ -270,14 +337,18 @@ p {
 }
 
 .hero__photo {
+  overflow: hidden;
   width: 100%;
   max-width: 680px;
   aspect-ratio: 4 / 3;
-  background:
-    url("https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=80")
-    center / cover;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   filter: saturate(0.85);
+}
+
+.hero__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .hero p {
@@ -328,9 +399,7 @@ p {
 
 .hero-visual {
   min-height: 360px;
-  background:
-    linear-gradient(145deg, rgba(123, 58, 72, 0.1), rgba(246, 232, 228, 0.18)),
-    url("https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=80");
+  background: linear-gradient(145deg, rgba(123, 58, 72, 0.1), rgba(246, 232, 228, 0.18));
   background-position: center;
   background-size: cover;
   filter: saturate(0.9);
@@ -410,7 +479,7 @@ p {
   align-items: center;
   gap: 10px;
   margin: 0 0 14px;
-  color: var(--rose-dark);
+  color: var(--brand-secondary);
   font-size: 0.74rem;
   font-weight: 820;
   letter-spacing: 0.1em;
@@ -435,7 +504,7 @@ p {
 
 .section-heading h2 {
   margin: 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(2rem, 4vw, 3.3rem);
   font-weight: 500;
   line-height: 1.04;
@@ -457,7 +526,7 @@ p {
 }
 
 .conversion-strip a {
-  color: var(--rose-dark);
+  color: var(--brand-secondary);
   white-space: nowrap;
 }
 
@@ -511,6 +580,14 @@ p {
   padding: 28px;
 }
 
+.service-card__image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
 .service-card__meta {
   display: flex;
   justify-content: space-between;
@@ -522,14 +599,14 @@ p {
 
 .service-card h3 {
   margin: 18px 0 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.55rem;
   font-weight: 500;
   line-height: 1.18;
 }
 
 .service-card strong {
-  color: var(--rose-dark);
+  color: var(--brand-secondary);
 }
 
 .promo-card,
@@ -544,7 +621,7 @@ p {
 .promo-card h3,
 .professional-card h3 {
   margin: 6px 0 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.7rem;
   font-weight: 500;
   line-height: 1.12;
@@ -566,7 +643,7 @@ p {
 }
 
 .price-row strong {
-  color: var(--rose-dark);
+  color: var(--brand-secondary);
   font-size: 1.55rem;
 }
 
@@ -576,6 +653,7 @@ p {
 }
 
 .professional-avatar {
+  overflow: hidden;
   display: grid;
   width: 72px;
   height: 72px;
@@ -583,9 +661,15 @@ p {
   border-radius: 50%;
   background: linear-gradient(145deg, rgba(123, 58, 72, 0.9), rgba(185, 120, 130, 0.78));
   color: white;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 2rem;
   box-shadow: 0 18px 38px rgba(123, 58, 72, 0.18);
+}
+
+.professional-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .professional-card > span {
@@ -595,7 +679,7 @@ p {
 }
 
 .professional-card strong {
-  color: var(--rose-dark);
+  color: var(--brand-secondary);
 }
 
 .feature,
@@ -662,7 +746,7 @@ p {
 .system-card strong {
   display: block;
   margin-top: 22px;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.45rem;
   font-weight: 500;
 }
@@ -700,7 +784,7 @@ p {
 
 .promo-band h2 {
   margin: 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(1.6rem, 3vw, 2.5rem);
   font-weight: 500;
 }
@@ -718,7 +802,7 @@ p {
 .faq-item summary {
   cursor: pointer;
   color: var(--ink);
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.3rem;
   font-weight: 500;
   list-style: none;
@@ -911,7 +995,7 @@ p {
 .booking-summary h2,
 .agenda-toolbar h2 {
   margin: 0;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 500;
   line-height: 1.08;
@@ -1238,7 +1322,7 @@ p {
 
 .appointment-card h3 {
   margin: 5px 0 2px;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.2rem;
   font-weight: 600;
   line-height: 1.15;
@@ -1654,7 +1738,7 @@ p {
 
 .feature--large strong {
   display: block;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.75rem;
   font-weight: 500;
   line-height: 1.18;
@@ -1727,7 +1811,7 @@ p {
 
 .step h3 {
   margin: 0 0 12px;
-  font-family: "Cormorant Garamond", Georgia, serif;
+  font-family: Georgia, "Times New Roman", serif;
   font-size: 1.38rem;
   font-weight: 500;
   color: var(--ink);

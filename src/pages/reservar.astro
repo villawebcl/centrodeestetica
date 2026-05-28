@@ -3,28 +3,25 @@ export const prerender = false;
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
 import { supabase } from "@lib/supabase";
+import { withTimeout } from "@lib/api";
 
-// 1. Obtener configuración
-const { data: config } = await supabase
-  .from("configuracion")
-  .select("*")
-  .single();
+const [{ data: config }, { data: services }, { data: professionals }] = await withTimeout(Promise.all([
+  supabase.from("configuracion").select("*").single(),
+  supabase.from("servicios").select("nombre").filter("activo", "eq", true).order("nombre"),
+  supabase.from("profesionales").select("nombre").filter("activo", "eq", true).order("nombre")
+]), 3000, [
+  { data: null, error: null },
+  { data: [], error: null },
+  { data: [], error: null }
+] as any);
 
-// 2. Obtener servicios para el select
-const { data: services } = await supabase
-  .from("servicios")
-  .select("nombre")
-  .filter("activo", "eq", true)
-  .order("nombre");
-
-// 3. Obtener profesionales para el select
-const { data: professionals } = await supabase
-  .from("profesionales")
-  .select("nombre")
-  .filter("activo", "eq", true)
-  .order("nombre");
-
-const slots = ["10:00", "11:30", "13:00", "15:30", "17:00", "18:30"];
+const defaultSlots = ["10:00", "11:30", "13:00", "15:30", "17:00", "18:30"];
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+const configuredSlots = (Array.isArray(config?.horario_slots) ? config.horario_slots : []) as string[];
+const validConfiguredSlots = configuredSlots.filter((slot: string) => timeRegex.test(String(slot)));
+const slots: string[] = validConfiguredSlots.length
+  ? validConfiguredSlots
+  : defaultSlots;
 const today = new Date();
 const dates = Array.from({ length: 8 }, (_, index) => {
   const date = new Date(today);
@@ -43,6 +40,7 @@ const site = {
 <BaseLayout
   title="Reservar hora"
   description={`Agenda una evaluacion o tratamiento en ${site.name}.`}
+  brandConfig={config}
 >
   <section class="page-section">
     <SectionHeading
@@ -68,7 +66,7 @@ const site = {
           Tratamiento
           <select name="service" required>
             <option value="">Selecciona una opcion</option>
-            {services?.map((service) => <option value={service.nombre}>{service.nombre}</option>)}
+            {services?.map((service: any) => <option value={service.nombre}>{service.nombre}</option>)}
           </select>
         </label>
 
@@ -76,7 +74,7 @@ const site = {
           Profesional
           <select name="professional" required>
             <option value="">Selecciona una opcion</option>
-            {professionals?.map((pro) => <option value={pro.nombre}>{pro.nombre}</option>)}
+            {professionals?.map((pro: any) => <option value={pro.nombre}>{pro.nombre}</option>)}
           </select>
         </label>
 
@@ -117,6 +115,14 @@ const site = {
           ></textarea>
         </label>
 
+        <label class="privacy-consent">
+          <input name="consent" type="checkbox" required />
+          <span>
+            Acepto que mis datos sean usados para gestionar mi solicitud de reserva y contacto,
+            de acuerdo con la <a href="/politicas" target="_blank" rel="noreferrer">politica de privacidad</a>.
+          </span>
+        </label>
+
         <button class="button" type="submit" id="submit-btn">Solicitar reserva</button>
         <p class="form-note" id="booking-feedback" aria-live="polite"></p>
       </form>
@@ -149,139 +155,7 @@ const site = {
     </div>
   </section>
 
-  <script type="module" is:inline>
-    /* ── Formateo de fechas ─────────────────────── */
-    function formatDate(dateStr) {
-      return new Intl.DateTimeFormat("es-CL", {
-        weekday: "short", day: "2-digit", month: "short"
-      }).format(new Date(`${dateStr}T12:00:00`));
-    }
-
-    document.querySelectorAll("[data-date-label]").forEach((node) => {
-      node.textContent = formatDate(node.dataset.dateLabel);
-    });
-
-    /* ── Refs ───────────────────────────────────── */
-    const form            = document.querySelector("#booking-form");
-    const feedback        = document.querySelector("#booking-feedback");
-    const submitBtn       = document.querySelector("#submit-btn");
-    const timeSlotGrid    = document.querySelector("#time-slots");
-    const slotsMessage    = document.querySelector("#slots-message");
-    const professionalSel = form.querySelector("[name='professional']");
-
-    /* ── Disponibilidad ─────────────────────────── */
-    function getSelectedDate() {
-      return form.querySelector("[name='date']:checked")?.value ?? "";
-    }
-
-    function setSlotState(label, input, taken) {
-      if (taken) {
-        label.classList.add("choice-card--taken");
-        input.disabled = true;
-        if (input.checked) {
-          input.checked = false;
-          // seleccionar el primer slot libre
-          const first = timeSlotGrid.querySelector("input:not([disabled])");
-          if (first) first.checked = true;
-        }
-      } else {
-        label.classList.remove("choice-card--taken");
-        input.disabled = false;
-      }
-    }
-
-    async function checkAvailability() {
-      const fecha      = getSelectedDate();
-      const profesional = professionalSel.value;
-
-      // Resetear estado si falta alguno de los dos
-      if (!fecha || !profesional) {
-        timeSlotGrid.querySelectorAll(".choice-card").forEach((card) => {
-          card.classList.remove("choice-card--taken", "choice-card--checking");
-          card.querySelector("input").disabled = false;
-        });
-        slotsMessage.hidden = true;
-        return;
-      }
-
-      // Estado de carga
-      timeSlotGrid.querySelectorAll(".choice-card").forEach((c) => c.classList.add("choice-card--checking"));
-      slotsMessage.hidden = true;
-
-      try {
-        const res = await fetch(
-          `/api/disponibilidad?fecha=${encodeURIComponent(fecha)}&profesional=${encodeURIComponent(profesional)}`
-        );
-        if (!res.ok) throw new Error();
-        const { booked } = await res.json();
-        const bookedSet = new Set(booked ?? []);
-
-        let allTaken = true;
-        timeSlotGrid.querySelectorAll(".choice-card").forEach((card) => {
-          const input = card.querySelector("input");
-          card.classList.remove("choice-card--checking");
-          const taken = bookedSet.has(input.value);
-          setSlotState(card, input, taken);
-          if (!taken) allTaken = false;
-        });
-
-        if (allTaken) {
-          slotsMessage.textContent = "No hay horarios disponibles para esta fecha y profesional. Prueba otro día.";
-          slotsMessage.className   = "slots-message slots-message--warn";
-          slotsMessage.hidden      = false;
-          submitBtn.disabled       = true;
-        } else {
-          submitBtn.disabled = false;
-        }
-      } catch {
-        timeSlotGrid.querySelectorAll(".choice-card").forEach((c) => c.classList.remove("choice-card--checking"));
-      }
-    }
-
-    professionalSel.addEventListener("change", checkAvailability);
-    form.querySelectorAll("[name='date']").forEach((radio) =>
-      radio.addEventListener("change", checkAvailability)
-    );
-
-    /* ── Envío del formulario ───────────────────── */
-    form.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      submitBtn.disabled    = true;
-      submitBtn.textContent = "Enviando...";
-
-      const data = new FormData(form);
-
-      const response = await fetch("/api/reservas", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name:         data.get("name"),
-          phone:        data.get("phone"),
-          service:      data.get("service"),
-          professional: data.get("professional"),
-          date:         data.get("date"),
-          time:         data.get("time"),
-          notes:        data.get("notes")
-        })
-      });
-      const result = await response.json();
-
-      if (!response.ok) {
-        feedback.textContent = result.error || "Hubo un error al procesar tu solicitud. Por favor intenta de nuevo.";
-        feedback.className   = "form-note form-note--error";
-        submitBtn.disabled   = false;
-        submitBtn.textContent = "Solicitar reserva";
-        // Si el slot ya fue tomado mientras el usuario llenaba el form, refrescar
-        if (response.status === 409) checkAvailability();
-      } else {
-        feedback.textContent = `¡Solicitud recibida! Te contactaremos para confirmar tu cita el ${formatDate(data.get("date"))} a las ${data.get("time")}.`;
-        feedback.className   = "form-note form-note--success";
-        form.reset();
-        submitBtn.textContent = "Solicitud enviada";
-        checkAvailability();
-      }
-    });
-  </script>
+  <script src="../scripts/reservar.js"></script>
 
   <style>
     .slots-message {

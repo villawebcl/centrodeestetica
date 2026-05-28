@@ -1,14 +1,62 @@
 ---
 import "../styles/global.css";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+import { withTimeout } from "@lib/api";
 
 interface Props {
   title?: string;
   description?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  brandConfig?: {
+    nombre_negocio?: string | null;
+    direccion?: string | null;
+    horarios?: string | null;
+    email?: string | null;
+    color_primario?: string | null;
+    color_secundario?: string | null;
+  } | null;
 }
 
-const { title = site.name, description = site.description } = Astro.props;
-const pageTitle = title === site.name ? title : `${title} | ${site.name}`;
+const defaultSite = {
+  name: "Lumina Estetica",
+  description:
+    "Tratamientos esteticos personalizados en un espacio calido, profesional y pensado para que agendes sin complicaciones.",
+  address: "Av. Providencia 1234, Santiago",
+  hours: "Lunes a sabado, 10:00 a 19:30",
+  email: "hola@luminaestetica.cl"
+};
+
+const {
+  title = defaultSite.name,
+  description = defaultSite.description,
+  ogTitle,
+  ogDescription,
+  ogImage = "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1200&q=80",
+  brandConfig
+} = Astro.props;
+const layoutConfig = brandConfig ?? (await withTimeout(supabase
+  .from("configuracion")
+  .select("nombre_negocio, direccion, horarios, email, color_primario, color_secundario")
+  .single(), 2500, { data: null, error: null } as any)).data;
+
+const brandName = layoutConfig?.nombre_negocio || defaultSite.name;
+const brandAddress = layoutConfig?.direccion || defaultSite.address;
+const brandHours = layoutConfig?.horarios || defaultSite.hours;
+const brandEmail = layoutConfig?.email || defaultSite.email;
+const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
+const brandPrimary = hexColorRegex.test(layoutConfig?.color_primario ?? "") ? layoutConfig?.color_primario : null;
+const brandSecondary = hexColorRegex.test(layoutConfig?.color_secundario ?? "") ? layoutConfig?.color_secundario : null;
+const pageTitle = title === defaultSite.name || title === brandName ? brandName : `${title} | ${brandName}`;
+const socialTitle = ogTitle || pageTitle;
+const socialDescription = ogDescription || description;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.url.origin).toString();
+const socialImage = new URL(ogImage, Astro.url.origin).toString();
+const brandStyle = [
+  brandPrimary ? `--brand-primary:${brandPrimary}` : "",
+  brandSecondary ? `--brand-secondary:${brandSecondary}` : ""
+].filter(Boolean).join(";");
 ---
 
 <!doctype html>
@@ -18,21 +66,29 @@ const pageTitle = title === site.name ? title : `${title} | ${site.name}`;
     <meta name="description" content={description} />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#fbfaf8" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet" />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={brandName} />
+    <meta property="og:title" content={socialTitle} />
+    <meta property="og:description" content={socialDescription} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={socialImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={socialTitle} />
+    <meta name="twitter:description" content={socialDescription} />
+    <meta name="twitter:image" content={socialImage} />
     <title>{pageTitle}</title>
   </head>
-  <body>
+  <body style={brandStyle}>
     <header class="site-header">
       <nav class="main-nav main-nav--left" aria-label="Navegacion izquierda">
         <a href="/">Inicio</a>
         <a href="/servicios">Servicios</a>
         <a href="/promociones">Promos</a>
       </nav>
-      <a class="brand" href="/" aria-label={`${site.name} inicio`}>
-        <span class="brand-mark">L</span>
-        <strong>{site.name}</strong>
+      <a class="brand" href="/" aria-label={`${brandName} inicio`}>
+        <span class="brand-mark">{brandName.slice(0, 1)}</span>
+        <strong>{brandName}</strong>
       </a>
       <nav class="main-nav main-nav--right" aria-label="Navegacion derecha">
         <a href="/reservar">Reservar</a>
@@ -44,8 +100,8 @@ const pageTitle = title === site.name ? title : `${title} | ${site.name}`;
     </main>
     <footer class="site-footer">
       <div>
-        <strong>{site.name}</strong>
-        <p>{site.address}</p>
+        <strong>{brandName}</strong>
+        <p>{brandAddress}</p>
       </div>
       <nav class="footer-links" aria-label="Enlaces secundarios">
         <a href="/profesionales">Profesionales</a>
@@ -54,12 +110,20 @@ const pageTitle = title === site.name ? title : `${title} | ${site.name}`;
         <a href="/admin">Admin</a>
       </nav>
       <div>
-        <p>{site.hours}</p>
-        <a href={`mailto:${site.email}`}>{site.email}</a>
+        <p>{brandHours}</p>
+        <a href={`mailto:${brandEmail}`}>{brandEmail}</a>
       </div>
     </footer>
-    <a class="floating-cta" href={site.ctaHref}>
+    <a class="floating-cta" href="/reservar">
       Reservar hora
     </a>
+    <div class="privacy-banner" id="privacy-banner" hidden>
+      <p>
+        Usamos cookies tecnicas de sesion y guardamos tus datos solo para responder consultas y gestionar reservas.
+        Revisa nuestra <a href="/politicas">politica de privacidad</a>.
+      </p>
+      <button type="button" class="button button--secondary" id="privacy-banner-ok">Entendido</button>
+    </div>
+    <script src="/privacy-notice.js" is:inline></script>
   </body>
 </html>

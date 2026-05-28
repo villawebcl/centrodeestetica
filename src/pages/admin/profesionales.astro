@@ -40,6 +40,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
 
       <form id="pro-form" class="booking-form">
         <input type="hidden" name="id" id="pro-id" />
+        <input type="hidden" name="foto_url" id="pro-foto-url" />
 
         <label>
           Nombre completo
@@ -62,6 +63,12 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
           <textarea name="bio" id="pro-bio" rows="3" placeholder="Breve descripción del profesional..."></textarea>
         </label>
 
+        <label>
+          Foto del profesional
+          <input type="file" name="image_file" id="pro-image-file" accept="image/png,image/jpeg,image/webp,image/avif" />
+        </label>
+        <p class="field-hint" id="pro-image-current" hidden></p>
+
         <div class="svc-dialog__footer">
           <button type="button" class="button button--secondary" id="cancel-btn">Cancelar</button>
           <button type="submit" class="button" id="save-btn">Guardar</button>
@@ -81,20 +88,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const openBtn       = document.querySelector("#open-dialog-btn");
     const closeBtn      = document.querySelector("#close-dialog-btn");
     const cancelBtn     = document.querySelector("#cancel-btn");
-
-    function showToast(message, isError = false) {
-      const tc    = document.querySelector("#toast-container");
-      const toast = document.createElement("div");
-      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
-      toast.setAttribute("role", "status");
-      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
-      tc.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
-      setTimeout(() => {
-        toast.classList.remove("svc-toast--visible");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-      }, 4000);
-    }
 
     function showStatus(message, isError = false) {
       formStatus.textContent = message;
@@ -123,6 +116,17 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         .replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
 
+    async function uploadImage(file) {
+      if (!file || file.size === 0) return document.querySelector("#pro-foto-url").value;
+      const body = new FormData();
+      body.set("folder", "profesionales");
+      body.set("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "No se pudo subir la imagen.");
+      return result.url;
+    }
+
     async function render() {
       const res    = await fetch("/api/admin/profesionales");
       const result = await res.json();
@@ -138,6 +142,9 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         const card = document.createElement("article");
         card.className = `svc-card${p.activo ? "" : " svc-card--inactive"}`;
         const initial = escapeHtml((p.nombre || "?")[0].toUpperCase());
+        const avatar = p.foto_url
+          ? `<img class="pro-avatar pro-avatar--image" src="${escapeHtml(p.foto_url)}" alt="" loading="lazy">`
+          : `<div class="pro-avatar">${initial}</div>`;
         const id = escapeHtml(p.id), name = escapeHtml(p.nombre);
         card.innerHTML = `
           <div class="svc-card__top">
@@ -154,7 +161,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
             </div>
           </div>
           <div class="pro-card__body">
-            <div class="pro-avatar">${initial}</div>
+            ${avatar}
             <div>
               <h3 class="svc-card__name">${name}</h3>
               ${p.especialidad ? `<p class="pro-especialidad">${escapeHtml(p.especialidad)}</p>` : ""}
@@ -172,7 +179,8 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       const fd     = new FormData(form);
       const id     = document.querySelector("#pro-id").value;
       const isEdit = Boolean(id);
-      const payload = { nombre: fd.get("nombre"), rol: fd.get("rol"), especialidad: fd.get("especialidad"), bio: fd.get("bio") };
+      const fotoUrl = await uploadImage(document.querySelector("#pro-image-file").files[0]);
+      const payload = { nombre: fd.get("nombre"), rol: fd.get("rol"), especialidad: fd.get("especialidad"), bio: fd.get("bio"), foto_url: fotoUrl };
       try {
         const url  = "/api/admin/profesionales";
         const opts = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
@@ -216,11 +224,20 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         document.querySelector("#pro-rol").value          = d.rol || "";
         document.querySelector("#pro-especialidad").value = d.especialidad || "";
         document.querySelector("#pro-bio").value          = d.bio || "";
+        document.querySelector("#pro-foto-url").value     = d.foto_url || "";
+        const current = document.querySelector("#pro-image-current");
+        current.hidden = !d.foto_url;
+        current.textContent = d.foto_url ? "Foto actual cargada. Sube otra para reemplazarla." : "";
         openDialog(true);
       }
     });
 
-    function resetForm() { form.reset(); document.querySelector("#pro-id").value = ""; }
+    function resetForm() {
+      form.reset();
+      document.querySelector("#pro-id").value = "";
+      document.querySelector("#pro-foto-url").value = "";
+      document.querySelector("#pro-image-current").hidden = true;
+    }
     render();
   </script>
 

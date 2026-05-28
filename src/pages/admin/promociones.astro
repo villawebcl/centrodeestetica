@@ -93,20 +93,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const closeBtn      = document.querySelector("#close-dialog-btn");
     const cancelBtn     = document.querySelector("#cancel-btn");
 
-    function showToast(message, isError = false) {
-      const tc    = document.querySelector("#toast-container");
-      const toast = document.createElement("div");
-      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
-      toast.setAttribute("role", "status");
-      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
-      tc.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
-      setTimeout(() => {
-        toast.classList.remove("svc-toast--visible");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-      }, 4000);
-    }
-
     function showStatus(message, isError = false) {
       formStatus.textContent = message;
       formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
