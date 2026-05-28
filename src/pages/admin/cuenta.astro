@@ -1,0 +1,110 @@
+---
+export const prerender = false;
+import AdminLayout from "@layouts/AdminLayout.astro";
+import { supabase } from "@lib/supabase";
+
+const { data: config } = await supabase.from("configuracion").select("nombre_negocio").single();
+const siteName = config?.nombre_negocio || "Lumina Estetica";
+---
+
+<AdminLayout title="Cuenta" currentPage="cuenta" siteName={siteName}>
+
+  <div class="al-page-header">
+    <div class="al-page-header__text">
+      <span class="al-page-eyebrow">Sistema / Cuenta</span>
+      <h1 class="al-page-title">Cambiar contraseña</h1>
+      <p class="al-page-desc">Actualiza la contraseña con la que accedes a este panel.</p>
+    </div>
+  </div>
+
+  <div class="admin-panel config-panel">
+    <form id="cuenta-form" class="booking-form">
+      <fieldset class="config-section">
+        <legend>Seguridad</legend>
+
+        <label>
+          Contraseña actual
+          <input type="password" id="current-password" name="current_password" required
+            placeholder="••••••••" autocomplete="current-password" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Nueva contraseña
+            <input type="password" id="new-password" name="new_password" required
+              placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" />
+          </label>
+          <label>
+            Confirmar contraseña
+            <input type="password" id="confirm-password" name="confirm_password" required
+              placeholder="Repite la contraseña" autocomplete="new-password" minlength="8" />
+          </label>
+        </div>
+
+        <p class="field-hint">
+          Después de cambiarla, úsala la próxima vez que inicies sesión.
+          Si olvidaste la contraseña actual, pide ayuda al desarrollador.
+        </p>
+      </fieldset>
+
+      <div class="config-footer">
+        <button type="submit" class="button" id="save-btn">Cambiar contraseña</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" is:inline>
+    const form    = document.querySelector("#cuenta-form");
+    const saveBtn = document.querySelector("#save-btn");
+
+    function showToast(message, isError = false) {
+      const tc    = document.querySelector("#toast-container");
+      const toast = document.createElement("div");
+      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
+      toast.setAttribute("role", "status");
+      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
+      tc.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
+      setTimeout(() => {
+        toast.classList.remove("svc-toast--visible");
+        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+      }, 4500);
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const newPass     = document.querySelector("#new-password").value;
+      const confirmPass = document.querySelector("#confirm-password").value;
+
+      if (newPass !== confirmPass) {
+        showToast("Las contraseñas no coinciden.", true);
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Guardando...";
+
+      try {
+        const res = await fetch("/api/admin/cuenta", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            current_password:  document.querySelector("#current-password").value,
+            new_password:      newPass,
+            confirm_password:  confirmPass,
+          }),
+        });
+        const r = await res.json();
+        if (!res.ok) throw new Error(r.error || "Error al guardar.");
+        showToast("Contraseña actualizada correctamente.");
+        form.reset();
+      } catch (err) {
+        showToast("Error: " + err.message, true);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Cambiar contraseña";
+      }
+    });
+  </script>
+
+</AdminLayout>

@@ -2,7 +2,7 @@
 import "../styles/global.css";
 import "../styles/admin.css";
 
-type Page = "reservas" | "servicios" | "profesionales" | "promociones" | "configuracion";
+type Page = "reservas" | "servicios" | "profesionales" | "promociones" | "configuracion" | "cuenta";
 
 interface Props {
   title?: string;
@@ -30,7 +30,8 @@ const nav: { group: string; items: { id: Page; label: string; href: string; icon
   {
     group: "Sistema",
     items: [
-      { id: "configuracion", label: "Configuración", href: "/admin/configuracion", icon: "settings" },
+        { id: "configuracion", label: "Configuración", href: "/admin/configuracion", icon: "settings" },
+      { id: "cuenta",        label: "Cuenta",         href: "/admin/cuenta",         icon: "lock"     },
     ],
   },
 ];
@@ -41,6 +42,7 @@ const icons: Record<string, string> = {
   user:     `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 13.5c0-2.76 2.46-5 5.5-5s5.5 2.24 5.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
   gift:     `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1.5" y="6" width="13" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 6h13v2.5H1.5V6z" stroke="currentColor" stroke-width="1.4"/><path d="M8 6V14.5M5.5 6c0-2.5-.5-5 2.5-5s2.5 2.5 2.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   settings: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.92.92M11.68 11.68l.92.92M3.4 12.6l.92-.92M11.68 4.32l.92-.92" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+  lock:     `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="3" y="7" width="10" height="7.5" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="10.5" r="1" fill="currentColor"/></svg>`,
 };
 ---
 

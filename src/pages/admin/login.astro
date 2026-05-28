@@ -1,10 +1,17 @@
 ---
 export const prerender = false;
-import BaseLayout from "@layouts/BaseLayout.astro";
-import SectionHeading from "@components/SectionHeading.astro";
+import LoginLayout from "@layouts/LoginLayout.astro";
 import { getClientIp, isRateLimited } from "@lib/api";
-import { setAdminSessionCookie } from "@lib/adminAuth";
+import { setAdminSessionCookie, safeEqual, verifyHashedPassword } from "@lib/adminAuth";
+import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
 
+const supabase = createSupabaseAdminClient();
+const { data: config } = await supabase
+  .from("configuracion")
+  .select("nombre_negocio, password_hash")
+  .single();
+
+const siteName = config?.nombre_negocio || "Mi Centro";
 let error = "";
 
 if (Astro.request.method === "POST") {
@@ -14,40 +21,51 @@ if (Astro.request.method === "POST") {
       error = "Demasiados intentos. Intenta nuevamente en unos minutos.";
     } else {
       const data = await Astro.request.formData();
-      const password = data.get("password");
+      const password = String(data.get("password") ?? "");
 
-      if (password === import.meta.env.ADMIN_PASSWORD) {
+      let isValid = false;
+      if (config?.password_hash) {
+        isValid = await verifyHashedPassword(password, config.password_hash);
+      } else {
+        const envPass = import.meta.env.ADMIN_PASSWORD ?? "";
+        isValid = envPass.length > 0 && safeEqual(password, envPass);
+      }
+
+      if (isValid) {
         await setAdminSessionCookie(Astro);
         return Astro.redirect("/admin");
       } else {
-        error = "Contraseña incorrecta";
+        error = "Contraseña incorrecta.";
       }
     }
   } catch (e) {
     console.error(e);
+    error = "Error interno. Intenta de nuevo.";
   }
 }
 ---
 
-<BaseLayout title="Login Admin" description="Acceso al panel de administración">
-  <section class="page-section">
-    <div style="max-width: 400px; margin: 0 auto;">
-      <SectionHeading
-        eyebrow="Seguridad"
-        title="Acceso Administrador"
-        text="Ingresa la contraseña para gestionar las reservas."
+<LoginLayout siteName={siteName}>
+  <h1 class="login-title">Bienvenido</h1>
+  <p class="login-subtitle">Ingresa tu contraseña para gestionar el panel.</p>
+
+  <form method="POST" class="login-form">
+    <label>
+      Contraseña
+      <input
+        type="password"
+        name="password"
+        required
+        placeholder="••••••••"
+        autocomplete="current-password"
+        autofocus
       />
-      
-      <form method="POST" class="booking-panel" style="display: flex; flex-direction: column; gap: 1rem;">
-        <label>
-          Contraseña
-          <input type="password" name="password" required placeholder="••••••••" />
-        </label>
-        
-        {error && <p style="color: #e63946; font-size: 0.9rem;">{error}</p>}
-        
-        <button class="button" type="submit">Entrar al panel</button>
-      </form>
-    </div>
-  </section>
-</BaseLayout>
+    </label>
+
+    {error && <p class="login-error" role="alert">{error}</p>}
+
+    <button class="button" type="submit" style="width:100%;margin-top:0.25rem;">
+      Entrar al panel
+    </button>
+  </form>
+</LoginLayout>

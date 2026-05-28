@@ -1,0 +1,39 @@
+---
+import "../styles/global.css";
+import "../styles/admin.css";
+
+interface Props {
+  siteName?: string;
+}
+const { siteName = "Mi Centro" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap"
+      rel="stylesheet"
+    />
+    <title>Acceso · Admin</title>
+  </head>
+  <body class="login-body">
+    <div class="login-root">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="login-brand__mark" aria-hidden="true">{siteName[0]}</div>
+          <div>
+            <strong class="login-brand__name">{siteName}</strong>
+            <span class="login-brand__sub">Panel Admin</span>
+          </div>
+        </div>
+        <slot />
+      </div>
+    </div>
+  </body>
+</html>

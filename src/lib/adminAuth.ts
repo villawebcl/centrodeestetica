@@ -2,6 +2,7 @@ import type { APIContext, AstroCookies } from "astro";
 
 const ADMIN_COOKIE = "admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
+const PBKDF2_ITERATIONS = 100_000;
 
 function getSecret() {
   const secret = import.meta.env.ADMIN_SESSION_SECRET || import.meta.env.ADMIN_PASSWORD;
@@ -16,13 +17,55 @@ function toBase64Url(bytes: ArrayBuffer) {
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-function safeEqual(a: string, b: string) {
+export function safeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
   let result = 0;
   for (let index = 0; index < a.length; index += 1) {
     result |= a.charCodeAt(index) ^ b.charCodeAt(index);
   }
   return result === 0;
+}
+
+function bytesToHex(bytes: ArrayBuffer): string {
+  return Array.from(new Uint8Array(bytes))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const result = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    result[i / 2] = parseInt(hex.slice(i, i + 2), 16);
+  }
+  return result;
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
+  );
+  const derived = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, key, 256
+  );
+  return `${bytesToHex(salt.buffer)}:${bytesToHex(derived)}`;
+}
+
+export async function verifyHashedPassword(password: string, stored: string): Promise<boolean> {
+  const idx = stored.indexOf(":");
+  if (idx < 1) return false;
+  try {
+    const salt = hexToBytes(stored.slice(0, idx));
+    const key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
+    );
+    const derived = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, key, 256
+    );
+    return safeEqual(bytesToHex(derived), stored.slice(idx + 1));
+  } catch {
+    return false;
+  }
 }
 
 async function sign(value: string) {
