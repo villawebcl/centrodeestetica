@@ -52,6 +52,20 @@ export const POST: APIRoute = async ({ request }) => {
       return json({ error: "Servicio o profesional no disponible." }, 400);
     }
 
+    // Bloquear doble booking: slot ya tomado por pendiente o confirmada
+    const { data: conflict } = await supabase
+      .from("reservas")
+      .select("id")
+      .eq("fecha", payload.fecha)
+      .eq("hora", payload.hora)
+      .eq("profesional_nombre", payload.profesional_nombre)
+      .in("estado", ["pendiente", "confirmada"])
+      .limit(1);
+
+    if (conflict?.length) {
+      return json({ error: "Este horario ya no está disponible. Por favor elige otro." }, 409);
+    }
+
     const { error } = await supabase.from("reservas").insert([payload]);
     if (error) return json({ error: "No se pudo crear la reserva." }, 500);
 

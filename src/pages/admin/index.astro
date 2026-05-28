@@ -1,23 +1,16 @@
 ---
 export const prerender = false;
-import SectionHeading from "@components/SectionHeading.astro";
-import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminLayout from "@layouts/AdminLayout.astro";
 import { supabase } from "@lib/supabase";
 
-// 1. Obtener configuración
-const { data: config } = await supabase
-  .from("configuracion")
-  .select("*")
-  .single();
+const { data: config } = await supabase.from("configuracion").select("*").single();
 
-// 2. Obtener profesionales para los filtros
 const { data: professionals } = await supabase
   .from("profesionales")
   .select("nombre")
   .filter("activo", "eq", true)
   .order("nombre");
 
-// 3. Obtener servicios para los filtros
 const { data: services } = await supabase
   .from("servicios")
   .select("nombre")
@@ -27,124 +20,109 @@ const { data: services } = await supabase
 const siteName = config?.nombre_negocio || "Lumina Estetica";
 ---
 
-<BaseLayout
-  title={`Admin | ${siteName}`}
-  description={`Panel de administracion de reservas de ${siteName}.`}
->
-  <section class="page-section admin-page">
-    <SectionHeading
-      eyebrow="Administracion"
-      title="Agenda de reservas"
-      text="Gestiona solicitudes, confirma horarios y revisa el flujo diario del centro."
-    />
+<AdminLayout title="Reservas" currentPage="reservas" siteName={siteName}>
 
-    <div class="admin-shell">
-      <aside class="admin-panel">
-        <div class="metric">
-          <span>Pendientes</span>
-          <strong data-metric="pendiente">0</strong>
-        </div>
-        <div class="metric">
-          <span>Confirmadas</span>
-          <strong data-metric="confirmada">0</strong>
-        </div>
-        <div class="metric">
-          <span>Completadas</span>
-          <strong data-metric="completada">0</strong>
-        </div>
-        <div class="metric">
-          <span>Canceladas</span>
-          <strong data-metric="cancelada">0</strong>
-        </div>
-      </aside>
+  <!-- KPI cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-card--pendiente">
+      <span class="kpi-card__label">Pendientes</span>
+      <strong class="kpi-card__count" data-metric="pendiente">—</strong>
+    </div>
+    <div class="kpi-card kpi-card--confirmada">
+      <span class="kpi-card__label">Confirmadas</span>
+      <strong class="kpi-card__count" data-metric="confirmada">—</strong>
+    </div>
+    <div class="kpi-card kpi-card--completada">
+      <span class="kpi-card__label">Completadas</span>
+      <strong class="kpi-card__count" data-metric="completada">—</strong>
+    </div>
+    <div class="kpi-card kpi-card--cancelada">
+      <span class="kpi-card__label">Canceladas</span>
+      <strong class="kpi-card__count" data-metric="cancelada">—</strong>
+    </div>
+  </div>
 
-      <div class="admin-panel agenda-board">
-        <div class="agenda-toolbar">
-          <div>
-            <p class="eyebrow">Reservas</p>
-            <h2>Solicitudes registradas</h2>
-          </div>
-          <div class="agenda-toolbar__right">
-            <a href="/admin/servicios" class="button button--secondary agenda-toolbar__nav">Gestionar Servicios</a>
-            <div class="status-tabs" role="tablist" aria-label="Filtrar reservas">
-              <button type="button" data-filter="todas" class="is-active">Todas</button>
-              <button type="button" data-filter="pendiente">Pendientes</button>
-              <button type="button" data-filter="confirmada">Confirmadas</button>
-            </div>
-          </div>
+  <!-- Agenda board -->
+  <div class="admin-panel agenda-board">
+    <div class="agenda-toolbar">
+      <div>
+        <p class="eyebrow">Agenda</p>
+        <h2>Solicitudes registradas</h2>
+      </div>
+      <div class="agenda-toolbar__right">
+        <div class="status-tabs" role="tablist" aria-label="Filtrar reservas">
+          <button type="button" data-filter="todas" class="is-active">Todas</button>
+          <button type="button" data-filter="pendiente">Pendientes</button>
+          <button type="button" data-filter="confirmada">Confirmadas</button>
         </div>
-
-        <div class="admin-filters">
-          <!-- Fila 1: búsqueda + orden + vista -->
-          <div class="admin-filters__row admin-filters__row--primary">
-            <label class="admin-filters__search-wrap">
-              <span class="sr-only">Buscar cliente</span>
-              <input type="search" id="search-filter" placeholder="Buscar por nombre o teléfono…" autocomplete="off" />
-            </label>
-            <label>
-              Ordenar
-              <select id="sort-filter">
-                <option value="reciente">Más reciente primero</option>
-                <option value="antigua">Más antigua primero</option>
-                <option value="proxima">Cita más próxima</option>
-                <option value="lejana">Cita más lejana</option>
-              </select>
-            </label>
-            <div class="view-toggle" role="group" aria-label="Cambiar vista">
-              <button type="button" class="view-toggle__btn is-active" id="view-list" aria-label="Vista lista" title="Vista lista">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <rect x="1" y="2" width="14" height="2.5" rx="1" fill="currentColor"/>
-                  <rect x="1" y="6.75" width="14" height="2.5" rx="1" fill="currentColor"/>
-                  <rect x="1" y="11.5" width="14" height="2.5" rx="1" fill="currentColor"/>
-                </svg>
-              </button>
-              <button type="button" class="view-toggle__btn" id="view-grid" aria-label="Vista grilla" title="Vista grilla">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
-                  <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
-                  <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
-                  <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          <!-- Fila 2: fechas + profesional + servicio + acciones -->
-          <div class="admin-filters__row admin-filters__row--secondary">
-            <label>
-              Desde
-              <input type="date" id="date-from-filter" />
-            </label>
-            <label>
-              Hasta
-              <input type="date" id="date-to-filter" />
-            </label>
-            <label>
-              Profesional
-              <select id="professional-filter">
-                <option value="">Todos</option>
-                {professionals?.map(pro => <option value={pro.nombre}>{pro.nombre}</option>)}
-              </select>
-            </label>
-            <label>
-              Servicio
-              <select id="service-filter">
-                <option value="">Todos</option>
-                {services?.map(s => <option value={s.nombre}>{s.nombre}</option>)}
-              </select>
-            </label>
-            <button type="button" class="button button--secondary" id="clear-filters">Limpiar</button>
-            <button type="button" class="button button--secondary" id="export-csv">Exportar CSV</button>
-          </div>
-        </div>
-
-        <div class="appointment-list" id="appointment-list"></div>
-        <p class="empty-state" id="empty-state" hidden>
-          Todavia no hay reservas.
-        </p>
       </div>
     </div>
-  </section>
+
+    <div class="admin-filters">
+      <div class="admin-filters__row admin-filters__row--primary">
+        <label class="admin-filters__search-wrap">
+          <span class="sr-only">Buscar cliente</span>
+          <input type="search" id="search-filter" placeholder="Buscar por nombre o teléfono…" autocomplete="off" />
+        </label>
+        <label>
+          Ordenar
+          <select id="sort-filter">
+            <option value="reciente">Más reciente primero</option>
+            <option value="antigua">Más antigua primero</option>
+            <option value="proxima">Cita más próxima</option>
+            <option value="lejana">Cita más lejana</option>
+          </select>
+        </label>
+        <div class="view-toggle" role="group" aria-label="Cambiar vista">
+          <button type="button" class="view-toggle__btn is-active" id="view-list" aria-label="Vista lista" title="Vista lista">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="1" y="2" width="14" height="2.5" rx="1" fill="currentColor"/>
+              <rect x="1" y="6.75" width="14" height="2.5" rx="1" fill="currentColor"/>
+              <rect x="1" y="11.5" width="14" height="2.5" rx="1" fill="currentColor"/>
+            </svg>
+          </button>
+          <button type="button" class="view-toggle__btn" id="view-grid" aria-label="Vista grilla" title="Vista grilla">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+              <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+              <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+              <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="admin-filters__row admin-filters__row--secondary">
+        <label>
+          Desde
+          <input type="date" id="date-from-filter" />
+        </label>
+        <label>
+          Hasta
+          <input type="date" id="date-to-filter" />
+        </label>
+        <label>
+          Profesional
+          <select id="professional-filter">
+            <option value="">Todos</option>
+            {professionals?.map(pro => <option value={pro.nombre}>{pro.nombre}</option>)}
+          </select>
+        </label>
+        <label>
+          Servicio
+          <select id="service-filter">
+            <option value="">Todos</option>
+            {services?.map(s => <option value={s.nombre}>{s.nombre}</option>)}
+          </select>
+        </label>
+        <button type="button" class="button button--secondary" id="clear-filters">Limpiar</button>
+        <button type="button" class="button button--secondary" id="export-csv">Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="appointment-list" id="appointment-list"></div>
+    <p class="empty-state" id="empty-state" hidden>Todavía no hay reservas.</p>
+  </div>
 
   <script type="module" is:inline>
     const list               = document.querySelector("#appointment-list");
@@ -163,7 +141,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     let currentFilter = "todas";
     let searchDebounce;
 
-    /* ── View toggle ────────────────────────────── */
     const savedView = localStorage.getItem("admin-view") || "list";
     if (savedView === "grid") {
       list.classList.add("appointment-list--grid");
@@ -186,36 +163,23 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     });
 
     const statusLabels = {
-      pendiente: "Pendiente",
-      confirmada: "Confirmada",
-      completada: "Completada",
-      cancelada: "Cancelada"
+      pendiente: "Pendiente", confirmada: "Confirmada",
+      completada: "Completada", cancelada: "Cancelada"
     };
 
     function formatDate(dateStr) {
-      return new Intl.DateTimeFormat("es-CL", {
-        weekday: "short",
-        day: "2-digit",
-        month: "short"
-      }).format(new Date(`${dateStr}T12:00:00`));
+      return new Intl.DateTimeFormat("es-CL", { weekday: "short", day: "2-digit", month: "short" })
+        .format(new Date(`${dateStr}T12:00:00`));
     }
 
     function formatCreatedAt(value) {
-      return new Intl.DateTimeFormat("es-CL", {
-        day: "2-digit",
-        month: "short",
-        hour: "2-digit",
-        minute: "2-digit"
-      }).format(new Date(value));
+      return new Intl.DateTimeFormat("es-CL", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })
+        .format(new Date(value));
     }
 
     function escapeHtml(value = "") {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+      return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
 
     function buildParams() {
@@ -231,32 +195,30 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     }
 
     async function fetchAppointments() {
-      const response = await fetch(`/api/admin/reservas?${buildParams()}`);
-      const result   = await response.json();
-      if (!response.ok) { console.error("Error fetching:", result.error); return []; }
-      return result.data || [];
+      const res = await fetch(`/api/admin/reservas?${buildParams()}`);
+      const r   = await res.json();
+      if (!res.ok) { console.error(r.error); return []; }
+      return r.data || [];
     }
 
     async function fetchMetrics() {
-      const response = await fetch("/api/admin/reservas?mode=metrics");
-      const result = await response.json();
-      if (!response.ok) return;
-
-      const counts = result.data.reduce((acc, curr) => {
+      const res = await fetch("/api/admin/reservas?mode=metrics");
+      const r   = await res.json();
+      if (!res.ok) return;
+      const counts = r.data.reduce((acc, curr) => {
         acc[curr.estado] = (acc[curr.estado] || 0) + 1;
         return acc;
       }, {});
-
-      ["pendiente", "confirmada", "completada", "cancelada"].forEach((status) => {
-        const node = document.querySelector(`[data-metric="${status}"]`);
-        if (node) node.textContent = counts[status] || 0;
+      ["pendiente", "confirmada", "completada", "cancelada"].forEach((s) => {
+        const node = document.querySelector(`[data-metric="${s}"]`);
+        if (node) node.textContent = counts[s] ?? 0;
       });
     }
 
-    function buildWhatsAppHref(appointment) {
-      const message = `Hola ${appointment.cliente_nombre}, te escribimos de la clinica por tu reserva de ${appointment.servicio_nombre} para el ${formatDate(appointment.fecha)} a las ${appointment.hora.slice(0, 5)}.`;
-      const phone = String(appointment.cliente_telefono || "").replace(/\D/g, "");
-      return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    function buildWhatsAppHref(a) {
+      const msg   = `Hola ${a.cliente_nombre}, te escribimos por tu reserva de ${a.servicio_nombre} para el ${formatDate(a.fecha)} a las ${a.hora.slice(0,5)}.`;
+      const phone = String(a.cliente_telefono || "").replace(/\D/g, "");
+      return `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
     }
 
     const actionsByStatus = {
@@ -266,71 +228,61 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       cancelada:  ["delete"],
     };
 
-    const actionLabels = {
-      confirmada: "Confirmar",
-      completada: "Completar",
-      cancelada:  "Cancelar",
-      delete:     "Eliminar",
-    };
+    const actionLabels = { confirmada: "Confirmar", completada: "Completar", cancelada: "Cancelar", delete: "Eliminar" };
 
-    function buildActionButtons(appointment) {
-      const status = getSafeStatus(appointment.estado);
+    function getSafeStatus(s) { return Object.hasOwn(statusLabels, s) ? s : "pendiente"; }
+
+    function buildActionButtons(a) {
+      const status  = getSafeStatus(a.estado);
       const actions = actionsByStatus[status] ?? ["delete"];
       return actions.map(action =>
         action === "delete"
-          ? `<button type="button" data-action="delete" data-id="${appointment.id}">${actionLabels.delete}</button>`
-          : `<button type="button" data-action="${action}" data-id="${appointment.id}">${actionLabels[action]}</button>`
+          ? `<button type="button" data-action="delete" data-id="${a.id}">${actionLabels.delete}</button>`
+          : `<button type="button" data-action="${action}" data-id="${a.id}">${actionLabels[action]}</button>`
       ).join("");
-    }
-
-    function getSafeStatus(status) {
-      return Object.hasOwn(statusLabels, status) ? status : "pendiente";
     }
 
     async function render() {
       const filtered = await fetchAppointments();
       fetchMetrics();
-
       list.innerHTML = "";
       emptyState.hidden = filtered.length > 0;
-
-      filtered.forEach((appointment) => {
+      filtered.forEach((a) => {
         const article = document.createElement("article");
-        const status = getSafeStatus(appointment.estado);
+        const status  = getSafeStatus(a.estado);
         article.className = `appointment-card is-${status}`;
-        const notes = escapeHtml(appointment.notas);
+        const notes = escapeHtml(a.notas);
         article.innerHTML = `
           <div class="appointment-card__main">
             <div>
               <span class="status-pill">${statusLabels[status]}</span>
-              <h3>${escapeHtml(appointment.cliente_nombre)}</h3>
-              <p>${escapeHtml(appointment.servicio_nombre)}</p>
+              <h3>${escapeHtml(a.cliente_nombre)}</h3>
+              <p>${escapeHtml(a.servicio_nombre)}</p>
             </div>
             <div class="appointment-date">
-              <strong>${formatDate(appointment.fecha)}</strong>
-              <span>${appointment.hora.slice(0, 5)}</span>
+              <strong>${formatDate(a.fecha)}</strong>
+              <span>${a.hora.slice(0,5)}</span>
             </div>
           </div>
           <dl>
-            <div><dt>Telefono</dt><dd>${escapeHtml(appointment.cliente_telefono)}</dd></div>
-            <div><dt>Profesional</dt><dd>${escapeHtml(appointment.profesional_nombre)}</dd></div>
-            <div><dt>Ingreso</dt><dd>${formatCreatedAt(appointment.creado_en)}</dd></div>
+            <div><dt>Telefono</dt><dd>${escapeHtml(a.cliente_telefono)}</dd></div>
+            <div><dt>Profesional</dt><dd>${escapeHtml(a.profesional_nombre)}</dd></div>
+            <div><dt>Ingreso</dt><dd>${formatCreatedAt(a.creado_en)}</dd></div>
             ${notes ? `<div><dt>Notas</dt><dd>${notes}</dd></div>` : ""}
           </dl>
           <div class="appointment-actions">
-            <a href="${buildWhatsAppHref(appointment)}" target="_blank" rel="noreferrer" class="button--wa">WhatsApp</a>
-            ${buildActionButtons(appointment)}
-          </div>
-        `;
+            <a href="${buildWhatsAppHref(a)}" target="_blank" rel="noreferrer" class="button--wa">WhatsApp</a>
+            ${buildActionButtons(a)}
+          </div>`;
         list.append(article);
       });
     }
 
-    filterButtons.forEach((button) => {
-      button.addEventListener("click", () => {
-        filterButtons.forEach((item) => item.classList.remove("is-active"));
-        button.classList.add("is-active");
-        currentFilter = button.dataset.filter;
+    filterButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        filterButtons.forEach((b) => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+        currentFilter = btn.dataset.filter;
         render();
       });
     });
@@ -339,82 +291,58 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       clearTimeout(searchDebounce);
       searchDebounce = setTimeout(render, 380);
     });
-    sortFilter.addEventListener("change", render);
-    dateFromFilter.addEventListener("change", render);
-    dateToFilter.addEventListener("change", render);
-    professionalFilter.addEventListener("change", render);
-    serviceFilter.addEventListener("change", render);
+
+    [sortFilter, dateFromFilter, dateToFilter, professionalFilter, serviceFilter]
+      .forEach(el => el.addEventListener("change", render));
 
     clearFilters.addEventListener("click", () => {
-      currentFilter            = "todas";
-      searchFilter.value       = "";
-      sortFilter.value         = "reciente";
-      dateFromFilter.value     = "";
-      dateToFilter.value       = "";
-      professionalFilter.value = "";
-      serviceFilter.value      = "";
-      filterButtons.forEach((item) => item.classList.remove("is-active"));
+      currentFilter = "todas";
+      searchFilter.value = ""; sortFilter.value = "reciente";
+      dateFromFilter.value = ""; dateToFilter.value = "";
+      professionalFilter.value = ""; serviceFilter.value = "";
+      filterButtons.forEach(b => b.classList.remove("is-active"));
       document.querySelector('[data-filter="todas"]')?.classList.add("is-active");
       render();
     });
 
     exportCsv.addEventListener("click", async () => {
-      const params = buildParams();
-
-      const response = await fetch(`/api/admin/reservas?${params.toString()}`);
-      const result = await response.json();
-      if (!response.ok) return;
-
-      const rows = result.data || [];
-      const headers = ["Nombre", "Servicio", "Profesional", "Fecha", "Hora", "Telefono", "Estado", "Ingreso"];
+      const res = await fetch(`/api/admin/reservas?${buildParams()}`);
+      const r   = await res.json();
+      if (!res.ok) return;
+      const rows    = r.data || [];
+      const headers = ["Nombre","Servicio","Profesional","Fecha","Hora","Telefono","Estado","Ingreso"];
       const csv = [
         headers.join(","),
-        ...rows.map(r => [
-          `"${(r.cliente_nombre || "").replace(/"/g, '""')}"`,
-          `"${(r.servicio_nombre || "").replace(/"/g, '""')}"`,
-          `"${(r.profesional_nombre || "").replace(/"/g, '""')}"`,
-          r.fecha,
-          r.hora.slice(0, 5),
-          `"${(r.cliente_telefono || "").replace(/"/g, '""')}"`,
-          r.estado,
-          formatCreatedAt(r.creado_en)
+        ...rows.map(row => [
+          `"${(row.cliente_nombre||"").replace(/"/g,'""')}"`,
+          `"${(row.servicio_nombre||"").replace(/"/g,'""')}"`,
+          `"${(row.profesional_nombre||"").replace(/"/g,'""')}"`,
+          row.fecha, row.hora.slice(0,5),
+          `"${(row.cliente_telefono||"").replace(/"/g,'""')}"`,
+          row.estado, formatCreatedAt(row.creado_en)
         ].join(","))
       ].join("\n");
-
       const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `reservas_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href = url; a.download = `reservas_${new Date().toISOString().slice(0,10)}.csv`;
+      a.click(); URL.revokeObjectURL(url);
     });
 
-    list.addEventListener("click", async (event) => {
-      const button = event.target.closest("[data-action]");
-      if (!button) return;
-
-      const { action, id } = button.dataset;
-
+    list.addEventListener("click", async (e) => {
+      const btn = e.target.closest("[data-action]");
+      if (!btn) return;
+      const { action, id } = btn.dataset;
       if (action === "delete") {
-        if (!confirm("¿Seguro que quieres eliminar esta reserva?")) return;
-        const response = await fetch("/api/admin/reservas", {
-          method: "DELETE",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id })
-        });
-        if (!response.ok) console.error(await response.json());
+        if (!confirm("¿Eliminar esta reserva?")) return;
+        await fetch("/api/admin/reservas", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
       } else {
-        const response = await fetch("/api/admin/reservas", {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ id, estado: action })
-        });
-        if (!response.ok) console.error(await response.json());
+        await fetch("/api/admin/reservas", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, estado: action }) });
       }
       render();
     });
 
     render();
   </script>
-</BaseLayout>
+
+</AdminLayout>

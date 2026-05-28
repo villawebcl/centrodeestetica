@@ -1,0 +1,170 @@
+---
+export const prerender = false;
+import AdminLayout from "@layouts/AdminLayout.astro";
+import { supabase } from "@lib/supabase";
+
+const { data: config } = await supabase.from("configuracion").select("*").single();
+const siteName = config?.nombre_negocio || "Lumina Estetica";
+---
+
+<AdminLayout title="Configuración" currentPage="configuracion" siteName={siteName}>
+
+  <div class="al-page-header">
+    <div class="al-page-header__text">
+      <span class="al-page-eyebrow">Sistema / Configuración</span>
+      <h1 class="al-page-title">Datos del negocio</h1>
+      <p class="al-page-desc">Información general que aparece en toda la web: nombre, contacto, horarios y colores.</p>
+    </div>
+  </div>
+
+  <div class="admin-panel config-panel">
+    <div id="config-status" class="form-status" hidden></div>
+
+    <form id="config-form" class="booking-form">
+
+      <fieldset class="config-section">
+        <legend>Identidad</legend>
+        <label>
+          Nombre del negocio
+          <input type="text" name="nombre_negocio" id="cfg-nombre" required
+            value={config?.nombre_negocio || ""}
+            placeholder="Ej: Lumina Estetica" />
+        </label>
+        <label>
+          Tagline
+          <input type="text" name="tagline" id="cfg-tagline"
+            value={config?.tagline || ""}
+            placeholder="Ej: Centro de estética facial y corporal" />
+        </label>
+        <label>
+          Descripción
+          <textarea name="descripcion" id="cfg-descripcion" rows="3"
+            placeholder="Descripción breve del negocio...">{config?.descripcion || ""}</textarea>
+        </label>
+      </fieldset>
+
+      <fieldset class="config-section">
+        <legend>Contacto y ubicación</legend>
+        <div class="form-grid">
+          <label>
+            Teléfono
+            <input type="text" name="telefono" id="cfg-telefono"
+              value={config?.telefono || ""}
+              placeholder="+56 9 1234 5678" />
+          </label>
+          <label>
+            Número WhatsApp
+            <input type="text" name="whatsapp_number" id="cfg-whatsapp"
+              value={config?.whatsapp_number || ""}
+              placeholder="56912345678 (sin + ni espacios)" />
+          </label>
+        </div>
+        <label>
+          Email
+          <input type="email" name="email" id="cfg-email"
+            value={config?.email || ""}
+            placeholder="hola@tunegocio.cl" />
+        </label>
+        <label>
+          Dirección
+          <input type="text" name="direccion" id="cfg-direccion"
+            value={config?.direccion || ""}
+            placeholder="Ej: Av. Providencia 1234, Santiago" />
+        </label>
+        <label>
+          Horarios
+          <input type="text" name="horarios" id="cfg-horarios"
+            value={config?.horarios || ""}
+            placeholder="Ej: Lunes a sábado, 10:00 a 19:30" />
+        </label>
+      </fieldset>
+
+      <fieldset class="config-section">
+        <legend>Colores de marca</legend>
+        <div class="color-grid">
+          <label class="color-label">
+            Color primario
+            <div class="color-input-wrap">
+              <input type="color" name="color_primario" id="cfg-color-primario"
+                value={config?.color_primario || "#000000"} />
+              <input type="text" id="cfg-color-primario-hex" class="color-hex"
+                value={config?.color_primario || "#000000"}
+                maxlength="7" placeholder="#000000" />
+            </div>
+          </label>
+          <label class="color-label">
+            Color secundario
+            <div class="color-input-wrap">
+              <input type="color" name="color_secundario" id="cfg-color-secundario"
+                value={config?.color_secundario || "#ffffff"} />
+              <input type="text" id="cfg-color-secundario-hex" class="color-hex"
+                value={config?.color_secundario || "#ffffff"}
+                maxlength="7" placeholder="#ffffff" />
+            </div>
+          </label>
+        </div>
+      </fieldset>
+
+      <div class="config-footer">
+        <button type="submit" class="button" id="save-btn">Guardar cambios</button>
+      </div>
+    </form>
+  </div>
+
+  <script type="module" is:inline>
+    const form    = document.querySelector("#config-form");
+    const saveBtn = document.querySelector("#save-btn");
+
+    function showToast(message, isError = false) {
+      const tc    = document.querySelector("#toast-container");
+      const toast = document.createElement("div");
+      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
+      toast.setAttribute("role", "status");
+      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
+      tc.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
+      setTimeout(() => {
+        toast.classList.remove("svc-toast--visible");
+        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+      }, 4000);
+    }
+
+    function syncColor(pickerId, hexId) {
+      const picker = document.querySelector(pickerId);
+      const hex    = document.querySelector(hexId);
+      picker.addEventListener("input", () => { hex.value = picker.value; });
+      hex.addEventListener("input",   () => {
+        if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) picker.value = hex.value;
+      });
+    }
+
+    syncColor("#cfg-color-primario",   "#cfg-color-primario-hex");
+    syncColor("#cfg-color-secundario", "#cfg-color-secundario-hex");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      saveBtn.disabled = true; saveBtn.textContent = "Guardando...";
+      const fd = new FormData(form);
+      const payload = {
+        nombre_negocio:   fd.get("nombre_negocio"),
+        tagline:          fd.get("tagline"),
+        descripcion:      fd.get("descripcion"),
+        telefono:         fd.get("telefono"),
+        whatsapp_number:  fd.get("whatsapp_number"),
+        email:            fd.get("email"),
+        direccion:        fd.get("direccion"),
+        horarios:         fd.get("horarios"),
+        color_primario:   document.querySelector("#cfg-color-primario-hex").value,
+        color_secundario: document.querySelector("#cfg-color-secundario-hex").value,
+      };
+      try {
+        const res    = await fetch("/api/admin/configuracion", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.error || "Error al guardar.");
+        showToast("Configuración guardada correctamente.");
+      } catch (err) { showToast("Error: " + err.message, true); }
+      finally { saveBtn.disabled = false; saveBtn.textContent = "Guardar cambios"; }
+    });
+  </script>
+
+</AdminLayout>

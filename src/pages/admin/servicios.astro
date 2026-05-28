@@ -1,44 +1,33 @@
 ---
 export const prerender = false;
-import SectionHeading from "@components/SectionHeading.astro";
-import BaseLayout from "@layouts/BaseLayout.astro";
+import AdminLayout from "@layouts/AdminLayout.astro";
 import { supabase } from "@lib/supabase";
 
 const { data: config } = await supabase.from("configuracion").select("nombre_negocio").single();
 const siteName = config?.nombre_negocio || "Lumina Estetica";
 ---
 
-<BaseLayout title={`Gestionar Servicios | ${siteName}`}>
-  <section class="page-section admin-page">
+<AdminLayout title="Servicios" currentPage="servicios" siteName={siteName}>
 
-    <div class="svc-header">
-      <SectionHeading
-        eyebrow="CMS / Servicios"
-        title="Gestionar Tratamientos"
-        text="Añade, edita o desactiva los servicios que se muestran en la web."
-      />
-      <div class="svc-header__actions">
-        <button type="button" class="button" id="open-dialog-btn">+ Nuevo Servicio</button>
-        <a href="/admin" class="button button--secondary">Volver a Reservas</a>
-      </div>
+  <div class="al-page-header">
+    <div class="al-page-header__text">
+      <span class="al-page-eyebrow">CMS / Servicios</span>
+      <h1 class="al-page-title">Gestionar Tratamientos</h1>
+      <p class="al-page-desc">Añade, edita o desactiva los servicios que se muestran en la web.</p>
     </div>
-
-    <div class="admin-panel">
-      <div class="svc-catalog-header">
-        <p class="eyebrow">Catálogo</p>
-        <h2>Servicios en la web</h2>
-      </div>
-      <div class="svc-grid" id="services-list">
-        <p class="svc-loading">Cargando servicios...</p>
-      </div>
+    <div class="al-page-actions">
+      <button type="button" class="button" id="open-dialog-btn">+ Nuevo Servicio</button>
     </div>
+  </div>
 
-  </section>
+  <div class="admin-panel">
+    <div class="svc-grid" id="services-list">
+      <p class="svc-loading">Cargando servicios...</p>
+    </div>
+  </div>
 
-  <!-- ── Modal ──────────────────────────────────── -->
   <dialog id="service-dialog" class="svc-dialog" aria-labelledby="svc-dialog-title">
     <div class="svc-dialog__inner">
-
       <div class="svc-dialog__header">
         <div>
           <p class="eyebrow" id="svc-dialog-eyebrow">Nuevo servicio</p>
@@ -89,23 +78,35 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
           <button type="submit" class="button" id="save-btn">Guardar servicio</button>
         </div>
       </form>
-
     </div>
   </dialog>
 
   <script type="module" is:inline>
-    const list        = document.querySelector("#services-list");
-    const dialog      = document.querySelector("#service-dialog");
-    const form        = document.querySelector("#service-form");
-    const saveBtn     = document.querySelector("#save-btn");
-    const cancelBtn   = document.querySelector("#cancel-btn");
-    const dialogTitle = document.querySelector("#svc-dialog-title");
+    const list          = document.querySelector("#services-list");
+    const dialog        = document.querySelector("#service-dialog");
+    const form          = document.querySelector("#service-form");
+    const saveBtn       = document.querySelector("#save-btn");
+    const cancelBtn     = document.querySelector("#cancel-btn");
+    const dialogTitle   = document.querySelector("#svc-dialog-title");
     const dialogEyebrow = document.querySelector("#svc-dialog-eyebrow");
-    const formStatus  = document.querySelector("#form-status");
-    const openBtn     = document.querySelector("#open-dialog-btn");
-    const closeBtn    = document.querySelector("#close-dialog-btn");
+    const formStatus    = document.querySelector("#form-status");
+    const openBtn       = document.querySelector("#open-dialog-btn");
+    const closeBtn      = document.querySelector("#close-dialog-btn");
 
-    /* ── Status banner ──────────────────────────── */
+    function showToast(message, isError = false) {
+      const tc    = document.querySelector("#toast-container");
+      const toast = document.createElement("div");
+      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
+      toast.setAttribute("role", "status");
+      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
+      tc.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
+      setTimeout(() => {
+        toast.classList.remove("svc-toast--visible");
+        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+      }, 4000);
+    }
+
     function showStatus(message, isError = false) {
       formStatus.textContent = message;
       formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
@@ -113,7 +114,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       setTimeout(() => { formStatus.hidden = true; }, 4000);
     }
 
-    /* ── Dialog open / close ────────────────────── */
     function openDialog(editMode = false) {
       dialogEyebrow.textContent = editMode ? "Editar servicio" : "Nuevo servicio";
       dialogTitle.textContent   = editMode ? "Editar tratamiento" : "Añadir tratamiento";
@@ -122,34 +122,19 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       dialog.showModal();
     }
 
-    function closeDialog() {
-      dialog.close();
-      resetForm();
-    }
+    function closeDialog() { dialog.close(); resetForm(); }
 
     openBtn.addEventListener("click",  () => { resetForm(); openDialog(false); });
     closeBtn.addEventListener("click", closeDialog);
     cancelBtn.addEventListener("click", closeDialog);
     dialog.addEventListener("click",   (e) => { if (e.target === dialog) closeDialog(); });
 
-    /* ── Data helpers ───────────────────────────── */
-    async function fetchServices() {
-      const res    = await fetch("/api/admin/servicios");
-      const result = await res.json();
-      if (!res.ok) { console.error(result.error); return []; }
-      return result.data || [];
-    }
-
-    function normalizeKey(name) {
-      return String(name || "").trim().toLowerCase();
-    }
-
     function escapeHtml(v = "") {
-      return String(v)
-        .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
     }
+
+    function normalizeKey(name) { return String(name || "").trim().toLowerCase(); }
 
     function getUnique(services) {
       const map = new Map();
@@ -163,9 +148,10 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       return [...map.values()];
     }
 
-    /* ── Render ─────────────────────────────────── */
     async function render() {
-      const services = getUnique(await fetchServices());
+      const res      = await fetch("/api/admin/servicios");
+      const result   = await res.json();
+      const services = getUnique(result.data || []);
       list.innerHTML = "";
 
       if (services.length === 0) {
@@ -176,78 +162,61 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       services.forEach((s) => {
         const card = document.createElement("article");
         card.className = `svc-card${s.activo ? "" : " svc-card--inactive"}`;
-
-        const cat  = escapeHtml(s.categoria);
-        const name = escapeHtml(s.nombre);
-        const desc = escapeHtml(s.descripcion || "Sin descripción");
-        const price = escapeHtml(s.precio);
-        const dur  = escapeHtml(s.duracion);
-        const id   = escapeHtml(s.id);
-
+        const id = escapeHtml(s.id), name = escapeHtml(s.nombre);
         card.innerHTML = `
           <div class="svc-card__top">
             <div class="svc-card__badges">
-              <span class="status-pill svc-cat-pill">${cat}</span>
-              ${!s.activo        ? `<span class="svc-badge svc-badge--off">Oculto</span>` : ""}
-              ${s.dupeCount > 1  ? `<span class="svc-badge svc-badge--warn">${s.dupeCount} copias</span>` : ""}
+              <span class="status-pill svc-cat-pill">${escapeHtml(s.categoria)}</span>
+              ${!s.activo       ? `<span class="svc-badge svc-badge--off">Oculto</span>` : ""}
+              ${s.dupeCount > 1 ? `<span class="svc-badge svc-badge--warn">${s.dupeCount} copias</span>` : ""}
             </div>
             <div class="svc-card__btns">
-              <button class="svc-btn action-edit" data-id="${id}" title="Editar">Editar</button>
-              <button class="svc-btn action-toggle" data-name="${name}" data-active="${s.activo}" title="${s.activo ? "Ocultar" : "Mostrar"}">
+              <button class="svc-btn action-edit" data-id="${id}">Editar</button>
+              <button class="svc-btn action-toggle" data-name="${name}" data-active="${s.activo}">
                 ${s.activo ? "Ocultar" : "Mostrar"}
               </button>
-              <button class="svc-btn svc-btn--danger action-delete" data-name="${name}" title="Eliminar">Eliminar</button>
+              <button class="svc-btn svc-btn--danger action-delete" data-name="${name}">Eliminar</button>
             </div>
           </div>
           <h3 class="svc-card__name">${name}</h3>
-          <p class="svc-card__desc">${desc}</p>
+          <p class="svc-card__desc">${escapeHtml(s.descripcion || "Sin descripción")}</p>
           <div class="svc-card__price">
-            <strong>${price}</strong>
-            <span class="svc-card__dur">&nbsp;·&nbsp;${dur}</span>
-          </div>
-        `;
+            <strong>${escapeHtml(s.precio)}</strong>
+            <span class="svc-card__dur">&nbsp;·&nbsp;${escapeHtml(s.duracion)}</span>
+          </div>`;
         list.append(card);
       });
     }
 
-    /* ── Form submit ────────────────────────────── */
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      saveBtn.disabled    = true;
+      saveBtn.disabled = true;
       saveBtn.textContent = "Guardando...";
-
-      const fd   = new FormData(form);
-      const id   = document.querySelector("#service-id").value;
-      const orig = document.querySelector("#service-original-nombre").value;
+      const fd     = new FormData(form);
+      const id     = document.querySelector("#service-id").value;
+      const orig   = document.querySelector("#service-original-nombre").value;
+      const isEdit = Boolean(id);
       const payload = {
-        nombre:      fd.get("nombre"),
-        categoria:   fd.get("categoria"),
-        duracion:    fd.get("duracion"),
-        precio:      fd.get("precio"),
-        descripcion: fd.get("descripcion"),
+        nombre: fd.get("nombre"), categoria: fd.get("categoria"),
+        duracion: fd.get("duracion"), precio: fd.get("precio"), descripcion: fd.get("descripcion"),
       };
-
       try {
-        const url    = "/api/admin/servicios";
-        const opts   = (method, body) => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-        const res    = id
+        const url  = "/api/admin/servicios";
+        const opts = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+        const res  = isEdit
           ? await fetch(url, opts("PATCH", { id, originalNombre: orig, payload }))
-          : await fetch(url, opts("POST", payload));
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || "Error al guardar.");
-        dialog.close();
-        resetForm();
-        await render();
-      } catch (err) {
-        console.error(err);
-        showStatus("Error: " + err.message, true);
-      } finally {
+          : await fetch(url, opts("POST",  payload));
+        const r = await res.json();
+        if (!res.ok) throw new Error(r.error || "Error al guardar.");
+        dialog.close(); resetForm(); await render();
+        showToast(isEdit ? "Servicio actualizado." : "Servicio creado.");
+      } catch (err) { showStatus("Error: " + err.message, true); }
+      finally {
         saveBtn.disabled    = false;
         saveBtn.textContent = id ? "Actualizar servicio" : "Guardar servicio";
       }
     });
 
-    /* ── List actions ───────────────────────────── */
     list.addEventListener("click", async (e) => {
       const btn  = e.target.closest("button");
       if (!btn) return;
@@ -255,21 +224,23 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       const name = btn.dataset.name;
 
       if (btn.classList.contains("action-delete")) {
-        if (!confirm("¿Estás seguro? Esta acción no se puede deshacer.")) return;
+        if (!confirm(`¿Eliminar "${name}"?`)) return;
+        btn.disabled = true;
         const res = await fetch("/api/admin/servicios", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ nombre: name }) });
-        if (!res.ok) { const r = await res.json(); alert("Error: " + r.error); return; }
-        render();
+        if (!res.ok) { const r = await res.json(); showToast("Error: " + r.error, true); btn.disabled = false; return; }
+        await render(); showToast(`"${name}" eliminado.`);
 
       } else if (btn.classList.contains("action-toggle")) {
         const active = btn.dataset.active === "true";
-        const res    = await fetch("/api/admin/servicios", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ nombre: name, payload: { activo: !active } }) });
-        if (!res.ok) { const r = await res.json(); alert("Error: " + r.error); return; }
-        render();
+        btn.disabled = true;
+        const res = await fetch("/api/admin/servicios", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ nombre: name, payload: { activo: !active } }) });
+        if (!res.ok) { const r = await res.json(); showToast("Error: " + r.error, true); btn.disabled = false; return; }
+        await render(); showToast(active ? `"${name}" ocultado.` : `"${name}" visible en la web.`);
 
       } else if (btn.classList.contains("action-edit")) {
         const res    = await fetch(`/api/admin/servicios?id=${encodeURIComponent(id)}`);
         const result = await res.json();
-        if (!res.ok || !result.data) { alert(result.error || "Error al cargar datos"); return; }
+        if (!res.ok || !result.data) { showToast(result.error || "Error al cargar.", true); return; }
         const d = result.data;
         document.querySelector("#service-id").value              = d.id;
         document.querySelector("#service-original-nombre").value = d.nombre;
@@ -291,341 +262,4 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     render();
   </script>
 
-  <!-- is:global so dynamically-created elements receive styles -->
-  <style is:global>
-    /* ── Page header ────────────────────────────── */
-    .svc-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 1.5rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-    }
-
-    .svc-header__actions {
-      display: flex;
-      gap: 0.75rem;
-      flex-shrink: 0;
-      padding-top: 0.5rem;
-    }
-
-    .svc-catalog-header {
-      margin-bottom: 1.5rem;
-    }
-
-    .svc-catalog-header h2 {
-      margin: 0;
-      font-family: "Cormorant Garamond", Georgia, serif;
-      font-size: 1.6rem;
-      font-weight: 500;
-    }
-
-    /* ── Services grid ──────────────────────────── */
-    .svc-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 16px;
-    }
-
-    .svc-loading,
-    .svc-empty {
-      text-align: center;
-      padding: 2.5rem;
-      color: var(--muted);
-      grid-column: 1 / -1;
-    }
-
-    /* ── Service card ───────────────────────────── */
-    .svc-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.74);
-      backdrop-filter: blur(14px);
-      padding: 20px 22px;
-      transition:
-        transform 260ms var(--ease),
-        box-shadow 260ms var(--ease),
-        border-color 260ms var(--ease),
-        background 260ms var(--ease);
-    }
-
-    .svc-card:hover {
-      border-color: rgba(123, 58, 72, 0.18);
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: 0 14px 44px rgba(60, 40, 100, 0.1);
-      transform: translateY(-3px);
-    }
-
-    .svc-card--inactive {
-      opacity: 0.6;
-    }
-
-    .svc-card__top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 0.75rem;
-      margin-bottom: 0.25rem;
-    }
-
-    .svc-card__badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .svc-cat-pill {
-      font-size: 0.72rem;
-    }
-
-    .svc-badge {
-      font-size: 0.7rem;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 999px;
-    }
-
-    .svc-badge--off {
-      background: rgba(230, 57, 70, 0.1);
-      color: #e63946;
-    }
-
-    .svc-badge--warn {
-      background: rgba(180, 83, 9, 0.1);
-      color: #b45309;
-    }
-
-    .svc-card__btns {
-      display: flex;
-      gap: 5px;
-      flex-shrink: 0;
-    }
-
-    .svc-btn {
-      height: 30px;
-      padding: 0 10px;
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.8);
-      color: var(--muted);
-      cursor: pointer;
-      font: inherit;
-      font-size: 0.75rem;
-      font-weight: 700;
-      white-space: nowrap;
-      transition:
-        background 180ms var(--ease),
-        border-color 180ms var(--ease),
-        color 180ms var(--ease),
-        transform 180ms var(--ease);
-    }
-
-    .svc-btn:hover {
-      background: white;
-      border-color: rgba(123, 58, 72, 0.28);
-      color: var(--rose-dark);
-      transform: translateY(-1px);
-    }
-
-    .svc-btn--danger {
-      color: #c0392b;
-      border-color: rgba(192, 57, 43, 0.2);
-    }
-
-    .svc-btn--danger:hover {
-      background: #fff5f5;
-      border-color: #e63946;
-      color: #e63946;
-    }
-
-    .svc-card__name {
-      margin: 0;
-      font-family: "Cormorant Garamond", Georgia, serif;
-      font-size: 1.35rem;
-      font-weight: 500;
-      line-height: 1.2;
-      color: var(--ink);
-    }
-
-    .svc-card--inactive .svc-card__name {
-      color: var(--muted);
-    }
-
-    .svc-card__desc {
-      margin: 0;
-      font-size: 0.87rem;
-      color: var(--muted);
-      line-height: 1.55;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .svc-card__price {
-      margin-top: auto;
-      padding-top: 0.6rem;
-      display: flex;
-      align-items: baseline;
-    }
-
-    .svc-card__price strong {
-      color: var(--rose-dark);
-      font-size: 1.05rem;
-    }
-
-    .svc-card__dur {
-      color: var(--muted);
-      font-size: 0.85rem;
-    }
-
-    /* ── Modal dialog ───────────────────────────── */
-    .svc-dialog {
-      width: min(540px, calc(100vw - 2rem));
-      max-height: calc(100dvh - 4rem);
-      border: 1px solid rgba(255, 255, 255, 0.55);
-      border-radius: var(--radius-lg);
-      background: rgba(253, 252, 255, 0.92);
-      backdrop-filter: blur(28px);
-      box-shadow:
-        0 0 0 1px rgba(90, 80, 140, 0.06),
-        0 40px 100px rgba(28, 24, 56, 0.24);
-      padding: 0;
-      overflow: hidden;
-      overscroll-behavior: contain;
-    }
-
-    .svc-dialog::backdrop {
-      background: rgba(20, 16, 40, 0.52);
-      backdrop-filter: blur(5px);
-    }
-
-    .svc-dialog[open] {
-      animation: svc-dialog-in 260ms var(--ease) both;
-    }
-
-    @keyframes svc-dialog-in {
-      from { opacity: 0; transform: scale(0.95) translateY(12px); }
-      to   { opacity: 1; transform: scale(1)    translateY(0);    }
-    }
-
-    .svc-dialog__inner {
-      overflow-y: auto;
-      max-height: calc(100dvh - 4rem);
-    }
-
-    .svc-dialog__header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 2rem 2rem 0;
-    }
-
-    .svc-dialog__header h2 {
-      margin: 4px 0 0;
-      font-family: "Cormorant Garamond", Georgia, serif;
-      font-size: 2rem;
-      font-weight: 500;
-      line-height: 1.05;
-      color: var(--ink);
-    }
-
-    .svc-dialog__close {
-      display: grid;
-      place-items: center;
-      width: 38px;
-      height: 38px;
-      flex-shrink: 0;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.6);
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 0.95rem;
-      margin-top: 2px;
-      transition:
-        background 180ms var(--ease),
-        border-color 180ms var(--ease),
-        color 180ms var(--ease);
-    }
-
-    .svc-dialog__close:hover {
-      background: rgba(230, 57, 70, 0.08);
-      border-color: rgba(230, 57, 70, 0.35);
-      color: #e63946;
-    }
-
-    #service-form.booking-form {
-      padding: 1.5rem 2rem 2rem;
-    }
-
-    #form-status {
-      margin: 0.5rem 2rem 0;
-    }
-
-    .svc-dialog__footer {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: flex-end;
-      padding-top: 0.5rem;
-    }
-
-    /* ── Responsive ─────────────────────────────── */
-    @media (max-width: 600px) {
-      .svc-header {
-        flex-direction: column;
-      }
-
-      .svc-header__actions {
-        width: 100%;
-      }
-
-      .svc-header__actions .button {
-        flex: 1;
-        justify-content: center;
-      }
-
-      .svc-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .svc-card__top {
-        flex-direction: column-reverse;
-        gap: 0.5rem;
-      }
-
-      .svc-card__btns {
-        width: 100%;
-      }
-
-      .svc-btn {
-        flex: 1;
-        justify-content: center;
-        display: flex;
-        align-items: center;
-      }
-
-      .svc-dialog__header,
-      #service-form.booking-form,
-      #form-status {
-        padding-left: 1.25rem;
-        padding-right: 1.25rem;
-      }
-
-      .svc-dialog__footer {
-        flex-direction: column-reverse;
-      }
-
-      .svc-dialog__footer .button {
-        width: 100%;
-        justify-content: center;
-      }
-    }
-  </style>
-</BaseLayout>
+</AdminLayout>

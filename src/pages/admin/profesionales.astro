@@ -1,0 +1,227 @@
+---
+export const prerender = false;
+import AdminLayout from "@layouts/AdminLayout.astro";
+import { supabase } from "@lib/supabase";
+
+const { data: config } = await supabase.from("configuracion").select("nombre_negocio").single();
+const siteName = config?.nombre_negocio || "Lumina Estetica";
+---
+
+<AdminLayout title="Profesionales" currentPage="profesionales" siteName={siteName}>
+
+  <div class="al-page-header">
+    <div class="al-page-header__text">
+      <span class="al-page-eyebrow">CMS / Equipo</span>
+      <h1 class="al-page-title">Gestionar Profesionales</h1>
+      <p class="al-page-desc">Añade, edita o desactiva los miembros del equipo que aparecen en la web.</p>
+    </div>
+    <div class="al-page-actions">
+      <button type="button" class="button" id="open-dialog-btn">+ Nuevo Profesional</button>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <div class="svc-grid" id="pro-list">
+      <p class="svc-loading">Cargando profesionales...</p>
+    </div>
+  </div>
+
+  <dialog id="pro-dialog" class="svc-dialog" aria-labelledby="pro-dialog-title">
+    <div class="svc-dialog__inner">
+      <div class="svc-dialog__header">
+        <div>
+          <p class="eyebrow" id="pro-dialog-eyebrow">Nuevo profesional</p>
+          <h2 id="pro-dialog-title">Añadir miembro</h2>
+        </div>
+        <button type="button" class="svc-dialog__close" id="close-dialog-btn" aria-label="Cerrar">&#x2715;</button>
+      </div>
+
+      <div id="form-status" class="form-status" hidden></div>
+
+      <form id="pro-form" class="booking-form">
+        <input type="hidden" name="id" id="pro-id" />
+
+        <label>
+          Nombre completo
+          <input type="text" name="nombre" id="pro-nombre" required placeholder="Ej: Camila Araya" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Rol / Cargo
+            <input type="text" name="rol" id="pro-rol" placeholder="Ej: Esteticista" />
+          </label>
+          <label>
+            Especialidad
+            <input type="text" name="especialidad" id="pro-especialidad" placeholder="Ej: Tratamientos faciales" />
+          </label>
+        </div>
+
+        <label>
+          Biografía corta
+          <textarea name="bio" id="pro-bio" rows="3" placeholder="Breve descripción del profesional..."></textarea>
+        </label>
+
+        <div class="svc-dialog__footer">
+          <button type="button" class="button button--secondary" id="cancel-btn">Cancelar</button>
+          <button type="submit" class="button" id="save-btn">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script type="module" is:inline>
+    const list          = document.querySelector("#pro-list");
+    const dialog        = document.querySelector("#pro-dialog");
+    const form          = document.querySelector("#pro-form");
+    const saveBtn       = document.querySelector("#save-btn");
+    const dialogTitle   = document.querySelector("#pro-dialog-title");
+    const dialogEyebrow = document.querySelector("#pro-dialog-eyebrow");
+    const formStatus    = document.querySelector("#form-status");
+    const openBtn       = document.querySelector("#open-dialog-btn");
+    const closeBtn      = document.querySelector("#close-dialog-btn");
+    const cancelBtn     = document.querySelector("#cancel-btn");
+
+    function showToast(message, isError = false) {
+      const tc    = document.querySelector("#toast-container");
+      const toast = document.createElement("div");
+      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
+      toast.setAttribute("role", "status");
+      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
+      tc.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
+      setTimeout(() => {
+        toast.classList.remove("svc-toast--visible");
+        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+      }, 4000);
+    }
+
+    function showStatus(message, isError = false) {
+      formStatus.textContent = message;
+      formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
+      formStatus.hidden      = false;
+      setTimeout(() => { formStatus.hidden = true; }, 4000);
+    }
+
+    function openDialog(editMode = false) {
+      dialogEyebrow.textContent = editMode ? "Editar profesional" : "Nuevo profesional";
+      dialogTitle.textContent   = editMode ? "Editar miembro" : "Añadir miembro";
+      saveBtn.textContent       = editMode ? "Actualizar" : "Guardar";
+      formStatus.hidden         = true;
+      dialog.showModal();
+    }
+
+    function closeDialog() { dialog.close(); resetForm(); }
+
+    openBtn.addEventListener("click", () => { resetForm(); openDialog(false); });
+    closeBtn.addEventListener("click", closeDialog);
+    cancelBtn.addEventListener("click", closeDialog);
+    dialog.addEventListener("click", (e) => { if (e.target === dialog) closeDialog(); });
+
+    function escapeHtml(v = "") {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    async function render() {
+      const res    = await fetch("/api/admin/profesionales");
+      const result = await res.json();
+      const pros   = result.data || [];
+      list.innerHTML = "";
+
+      if (pros.length === 0) {
+        list.innerHTML = `<p class="svc-empty">No hay profesionales creados todavía.</p>`;
+        return;
+      }
+
+      pros.forEach((p) => {
+        const card = document.createElement("article");
+        card.className = `svc-card${p.activo ? "" : " svc-card--inactive"}`;
+        const initial = escapeHtml((p.nombre || "?")[0].toUpperCase());
+        const id = escapeHtml(p.id), name = escapeHtml(p.nombre);
+        card.innerHTML = `
+          <div class="svc-card__top">
+            <div class="svc-card__badges">
+              ${p.rol ? `<span class="status-pill svc-cat-pill">${escapeHtml(p.rol)}</span>` : ""}
+              ${!p.activo ? `<span class="svc-badge svc-badge--off">Oculto</span>` : ""}
+            </div>
+            <div class="svc-card__btns">
+              <button class="svc-btn action-edit" data-id="${id}">Editar</button>
+              <button class="svc-btn action-toggle" data-id="${id}" data-active="${p.activo}">
+                ${p.activo ? "Ocultar" : "Mostrar"}
+              </button>
+              <button class="svc-btn svc-btn--danger action-delete" data-id="${id}" data-name="${name}">Eliminar</button>
+            </div>
+          </div>
+          <div class="pro-card__body">
+            <div class="pro-avatar">${initial}</div>
+            <div>
+              <h3 class="svc-card__name">${name}</h3>
+              ${p.especialidad ? `<p class="pro-especialidad">${escapeHtml(p.especialidad)}</p>` : ""}
+            </div>
+          </div>
+          ${p.bio ? `<p class="svc-card__desc">${escapeHtml(p.bio)}</p>` : ""}`;
+        list.append(card);
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      saveBtn.disabled = true;
+      saveBtn.textContent = "Guardando...";
+      const fd     = new FormData(form);
+      const id     = document.querySelector("#pro-id").value;
+      const isEdit = Boolean(id);
+      const payload = { nombre: fd.get("nombre"), rol: fd.get("rol"), especialidad: fd.get("especialidad"), bio: fd.get("bio") };
+      try {
+        const url  = "/api/admin/profesionales";
+        const opts = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+        const res  = isEdit
+          ? await fetch(url, opts("PATCH", { id, payload }))
+          : await fetch(url, opts("POST",  payload));
+        const r = await res.json();
+        if (!res.ok) throw new Error(r.error || "Error al guardar.");
+        dialog.close(); resetForm(); await render();
+        showToast(isEdit ? "Profesional actualizado." : "Profesional creado.");
+      } catch (err) { showStatus("Error: " + err.message, true); }
+      finally { saveBtn.disabled = false; saveBtn.textContent = id ? "Actualizar" : "Guardar"; }
+    });
+
+    list.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const id = btn.dataset.id, name = btn.dataset.name;
+
+      if (btn.classList.contains("action-delete")) {
+        if (!confirm(`¿Eliminar a "${name}"?`)) return;
+        btn.disabled = true;
+        const res = await fetch("/api/admin/profesionales", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+        if (!res.ok) { const r = await res.json(); showToast("Error: " + r.error, true); btn.disabled = false; return; }
+        await render(); showToast(`"${name}" eliminado.`);
+
+      } else if (btn.classList.contains("action-toggle")) {
+        const active = btn.dataset.active === "true";
+        btn.disabled = true;
+        const res = await fetch("/api/admin/profesionales", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, payload: { activo: !active } }) });
+        if (!res.ok) { const r = await res.json(); showToast("Error: " + r.error, true); btn.disabled = false; return; }
+        await render(); showToast(active ? "Profesional ocultado." : "Profesional visible en la web.");
+
+      } else if (btn.classList.contains("action-edit")) {
+        const res    = await fetch(`/api/admin/profesionales?id=${encodeURIComponent(id)}`);
+        const result = await res.json();
+        if (!res.ok || !result.data) { showToast(result.error || "Error al cargar.", true); return; }
+        const d = result.data;
+        document.querySelector("#pro-id").value           = d.id;
+        document.querySelector("#pro-nombre").value       = d.nombre;
+        document.querySelector("#pro-rol").value          = d.rol || "";
+        document.querySelector("#pro-especialidad").value = d.especialidad || "";
+        document.querySelector("#pro-bio").value          = d.bio || "";
+        openDialog(true);
+      }
+    });
+
+    function resetForm() { form.reset(); document.querySelector("#pro-id").value = ""; }
+    render();
+  </script>
+
+</AdminLayout>

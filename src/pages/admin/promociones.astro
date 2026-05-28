@@ -1,0 +1,243 @@
+---
+export const prerender = false;
+import AdminLayout from "@layouts/AdminLayout.astro";
+import { supabase } from "@lib/supabase";
+
+const { data: config } = await supabase.from("configuracion").select("nombre_negocio").single();
+const siteName = config?.nombre_negocio || "Lumina Estetica";
+---
+
+<AdminLayout title="Promociones" currentPage="promociones" siteName={siteName}>
+
+  <div class="al-page-header">
+    <div class="al-page-header__text">
+      <span class="al-page-eyebrow">CMS / Promociones</span>
+      <h1 class="al-page-title">Gestionar Promociones</h1>
+      <p class="al-page-desc">Crea, edita o desactiva las ofertas que se muestran en la web.</p>
+    </div>
+    <div class="al-page-actions">
+      <button type="button" class="button" id="open-dialog-btn">+ Nueva Promoción</button>
+    </div>
+  </div>
+
+  <div class="admin-panel">
+    <div class="svc-grid" id="promo-list">
+      <p class="svc-loading">Cargando promociones...</p>
+    </div>
+  </div>
+
+  <dialog id="promo-dialog" class="svc-dialog" aria-labelledby="promo-dialog-title">
+    <div class="svc-dialog__inner">
+      <div class="svc-dialog__header">
+        <div>
+          <p class="eyebrow" id="promo-dialog-eyebrow">Nueva promoción</p>
+          <h2 id="promo-dialog-title">Añadir oferta</h2>
+        </div>
+        <button type="button" class="svc-dialog__close" id="close-dialog-btn" aria-label="Cerrar">&#x2715;</button>
+      </div>
+
+      <div id="form-status" class="form-status" hidden></div>
+
+      <form id="promo-form" class="booking-form">
+        <input type="hidden" name="id" id="promo-id" />
+
+        <label>
+          Nombre de la promoción
+          <input type="text" name="nombre" id="promo-nombre" required placeholder="Ej: Glow Facial Completo" />
+        </label>
+
+        <div class="form-grid">
+          <label>
+            Precio actual
+            <input type="text" name="precio" id="promo-precio" placeholder="Ej: $45.000" />
+          </label>
+          <label>
+            Precio anterior
+            <input type="text" name="precio_antes" id="promo-precio-antes" placeholder="Ej: $65.000" />
+          </label>
+        </div>
+
+        <label>
+          Etiqueta / Tag
+          <input type="text" name="tag" id="promo-tag" placeholder="Ej: Más reservado" />
+        </label>
+
+        <label>
+          Descripción corta
+          <textarea name="descripcion" id="promo-descripcion" rows="2" placeholder="Breve descripción..."></textarea>
+        </label>
+
+        <label>
+          Qué incluye
+          <textarea name="incluye" id="promo-incluye" rows="4" placeholder="Un ítem por línea:&#10;Limpieza profunda&#10;Hidratación"></textarea>
+          <small class="field-hint">Escribe un ítem por línea.</small>
+        </label>
+
+        <div class="svc-dialog__footer">
+          <button type="button" class="button button--secondary" id="cancel-btn">Cancelar</button>
+          <button type="submit" class="button" id="save-btn">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <script type="module" is:inline>
+    const list          = document.querySelector("#promo-list");
+    const dialog        = document.querySelector("#promo-dialog");
+    const form          = document.querySelector("#promo-form");
+    const saveBtn       = document.querySelector("#save-btn");
+    const dialogTitle   = document.querySelector("#promo-dialog-title");
+    const dialogEyebrow = document.querySelector("#promo-dialog-eyebrow");
+    const formStatus    = document.querySelector("#form-status");
+    const openBtn       = document.querySelector("#open-dialog-btn");
+    const closeBtn      = document.querySelector("#close-dialog-btn");
+    const cancelBtn     = document.querySelector("#cancel-btn");
+
+    function showToast(message, isError = false) {
+      const tc    = document.querySelector("#toast-container");
+      const toast = document.createElement("div");
+      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
+      toast.setAttribute("role", "status");
+      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
+      tc.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
+      setTimeout(() => {
+        toast.classList.remove("svc-toast--visible");
+        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+      }, 4000);
+    }
+
+    function showStatus(message, isError = false) {
+      formStatus.textContent = message;
+      formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
+      formStatus.hidden      = false;
+      setTimeout(() => { formStatus.hidden = true; }, 4000);
+    }
+
+    function openDialog(editMode = false) {
+      dialogEyebrow.textContent = editMode ? "Editar promoción" : "Nueva promoción";
+      dialogTitle.textContent   = editMode ? "Editar oferta" : "Añadir oferta";
+      saveBtn.textContent       = editMode ? "Actualizar" : "Guardar";
+      formStatus.hidden         = true;
+      dialog.showModal();
+    }
+
+    function closeDialog() { dialog.close(); resetForm(); }
+
+    openBtn.addEventListener("click", () => { resetForm(); openDialog(false); });
+    closeBtn.addEventListener("click", closeDialog);
+    cancelBtn.addEventListener("click", closeDialog);
+    dialog.addEventListener("click", (e) => { if (e.target === dialog) closeDialog(); });
+
+    function escapeHtml(v = "") {
+      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    }
+
+    async function render() {
+      const res    = await fetch("/api/admin/promociones");
+      const result = await res.json();
+      const promos = result.data || [];
+      list.innerHTML = "";
+
+      if (promos.length === 0) {
+        list.innerHTML = `<p class="svc-empty">No hay promociones creadas todavía.</p>`;
+        return;
+      }
+
+      promos.forEach((p) => {
+        const card = document.createElement("article");
+        card.className = `svc-card${p.activo ? "" : " svc-card--inactive"}`;
+        const id = escapeHtml(p.id), name = escapeHtml(p.nombre);
+        const items = Array.isArray(p.incluye) ? p.incluye : [];
+        card.innerHTML = `
+          <div class="svc-card__top">
+            <div class="svc-card__badges">
+              ${p.tag ? `<span class="status-pill svc-cat-pill">${escapeHtml(p.tag)}</span>` : ""}
+              ${!p.activo ? `<span class="svc-badge svc-badge--off">Oculta</span>` : ""}
+            </div>
+            <div class="svc-card__btns">
+              <button class="svc-btn action-edit" data-id="${id}">Editar</button>
+              <button class="svc-btn action-toggle" data-id="${id}" data-active="${p.activo}">
+                ${p.activo ? "Ocultar" : "Mostrar"}
+              </button>
+              <button class="svc-btn svc-btn--danger action-delete" data-id="${id}" data-name="${name}">Eliminar</button>
+            </div>
+          </div>
+          <h3 class="svc-card__name">${name}</h3>
+          ${p.descripcion ? `<p class="svc-card__desc">${escapeHtml(p.descripcion)}</p>` : ""}
+          ${items.length ? `<ul class="promo-incluye">${items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul>` : ""}
+          <div class="svc-card__price">
+            <strong>${escapeHtml(p.precio)}</strong>
+            ${p.precio_antes ? `<span class="promo-antes">&nbsp;antes ${escapeHtml(p.precio_antes)}</span>` : ""}
+          </div>`;
+        list.append(card);
+      });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      saveBtn.disabled = true; saveBtn.textContent = "Guardando...";
+      const fd     = new FormData(form);
+      const id     = document.querySelector("#promo-id").value;
+      const isEdit = Boolean(id);
+      const payload = {
+        nombre:       fd.get("nombre"), precio: fd.get("precio"),
+        precio_antes: fd.get("precio_antes"), tag: fd.get("tag"),
+        descripcion:  fd.get("descripcion"),
+        incluye:      (fd.get("incluye") || "").split("\n").map(s => s.trim()).filter(Boolean),
+      };
+      try {
+        const url  = "/api/admin/promociones";
+        const opts = (m, b) => ({ method: m, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+        const res  = isEdit
+          ? await fetch(url, opts("PATCH", { id, payload }))
+          : await fetch(url, opts("POST",  payload));
+        const r = await res.json();
+        if (!res.ok) throw new Error(r.error || "Error al guardar.");
+        dialog.close(); resetForm(); await render();
+        showToast(isEdit ? "Promoción actualizada." : "Promoción creada.");
+      } catch (err) { showStatus("Error: " + err.message, true); }
+      finally { saveBtn.disabled = false; saveBtn.textContent = id ? "Actualizar" : "Guardar"; }
+    });
+
+    list.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button");
+      if (!btn) return;
+      const id = btn.dataset.id, name = btn.dataset.name;
+
+      if (btn.classList.contains("action-delete")) {
+        if (!confirm(`¿Eliminar "${name}"?`)) return;
+        btn.disabled = true;
+        const res = await fetch("/api/admin/promociones", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) });
+        if (!res.ok) { const r = await res.json(); showToast("Error: " + r.error, true); btn.disabled = false; return; }
+        await render(); showToast(`"${name}" eliminada.`);
+
+      } else if (btn.classList.contains("action-toggle")) {
+        const active = btn.dataset.active === "true";
+        btn.disabled = true;
+        const res = await fetch("/api/admin/promociones", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, payload: { activo: !active } }) });
+        if (!res.ok) { const r = await res.json(); showToast("Error: " + r.error, true); btn.disabled = false; return; }
+        await render(); showToast(active ? "Promoción ocultada." : "Promoción visible en la web.");
+
+      } else if (btn.classList.contains("action-edit")) {
+        const res    = await fetch(`/api/admin/promociones?id=${encodeURIComponent(id)}`);
+        const result = await res.json();
+        if (!res.ok || !result.data) { showToast(result.error || "Error al cargar.", true); return; }
+        const d = result.data;
+        document.querySelector("#promo-id").value           = d.id;
+        document.querySelector("#promo-nombre").value       = d.nombre;
+        document.querySelector("#promo-precio").value       = d.precio || "";
+        document.querySelector("#promo-precio-antes").value = d.precio_antes || "";
+        document.querySelector("#promo-tag").value          = d.tag || "";
+        document.querySelector("#promo-descripcion").value  = d.descripcion || "";
+        document.querySelector("#promo-incluye").value      = Array.isArray(d.incluye) ? d.incluye.join("\n") : "";
+        openDialog(true);
+      }
+    });
+
+    function resetForm() { form.reset(); document.querySelector("#promo-id").value = ""; }
+    render();
+  </script>
+
+</AdminLayout>

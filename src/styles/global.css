@@ -990,6 +990,19 @@ p {
   padding: 0 16px;
 }
 
+.admin-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.admin-nav .button {
+  font-size: 0.75rem;
+  min-height: 36px;
+  padding: 0 14px;
+}
+
 .admin-filters {
   display: flex;
   flex-direction: column;
