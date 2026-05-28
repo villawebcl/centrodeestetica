@@ -82,7 +82,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
 
         <div class="svc-dialog__footer">
           <button type="button" class="button button--secondary" id="cancel-btn">Cancelar</button>
-          <button type="submit" class="button" id="save-btn">Guardar servicio</button>
+          <button type="submit" class="button" id="save-btn">Guardar</button>
         </div>
       </form>
     </div>
@@ -103,7 +103,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     function openDialog(editMode = false) {
       dialogEyebrow.textContent = editMode ? "Editar servicio" : "Nuevo servicio";
       dialogTitle.textContent   = editMode ? "Editar tratamiento" : "Añadir tratamiento";
-      saveBtn.textContent       = editMode ? "Actualizar servicio" : "Guardar servicio";
+      saveBtn.textContent       = editMode ? "Actualizar" : "Guardar";
       formStatus.hidden         = true;
       dialog.showModal();
     }
@@ -197,7 +197,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       } catch (err) { showFormStatus(formStatus, "Error: " + err.message, true); }
       finally {
         saveBtn.disabled    = false;
-        saveBtn.textContent = id ? "Actualizar servicio" : "Guardar servicio";
+        saveBtn.textContent = id ? "Actualizar" : "Guardar";
       }
     });
 
