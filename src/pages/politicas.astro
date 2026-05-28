@@ -77,3 +77,43 @@ const site = {
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .policy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    margin-bottom: 28px;
+  }
+
+  .feature {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 12px rgba(60, 40, 100, 0.06);
+    transition:
+      transform 300ms var(--ease),
+      box-shadow 300ms var(--ease),
+      border-color 300ms var(--ease),
+      background 300ms var(--ease);
+    padding: 28px;
+  }
+
+  .feature:hover {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 12px 40px rgba(60, 40, 100, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .feature strong {
+    color: var(--rose-dark);
+  }
+
+  @media (max-width: 860px) {
+    .policy-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

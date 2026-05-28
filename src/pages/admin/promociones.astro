@@ -93,13 +93,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const closeBtn      = document.querySelector("#close-dialog-btn");
     const cancelBtn     = document.querySelector("#cancel-btn");
 
-    function showStatus(message, isError = false) {
-      formStatus.textContent = message;
-      formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
-      formStatus.hidden      = false;
-      setTimeout(() => { formStatus.hidden = true; }, 4000);
-    }
-
     function openDialog(editMode = false) {
       dialogEyebrow.textContent = editMode ? "Editar promoción" : "Nueva promoción";
       dialogTitle.textContent   = editMode ? "Editar oferta" : "Añadir oferta";
@@ -114,11 +107,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     closeBtn.addEventListener("click", closeDialog);
     cancelBtn.addEventListener("click", closeDialog);
     dialog.addEventListener("click", (e) => { if (e.target === dialog) closeDialog(); });
-
-    function escapeHtml(v = "") {
-      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
 
     async function render() {
       const res    = await fetch("/api/admin/promociones");
@@ -183,7 +171,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         if (!res.ok) throw new Error(r.error || "Error al guardar.");
         dialog.close(); resetForm(); await render();
         showToast(isEdit ? "Promoción actualizada." : "Promoción creada.");
-      } catch (err) { showStatus("Error: " + err.message, true); }
+      } catch (err) { showFormStatus(formStatus, "Error: " + err.message, true); }
       finally { saveBtn.disabled = false; saveBtn.textContent = id ? "Actualizar" : "Guardar"; }
     });
 

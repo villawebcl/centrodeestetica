@@ -1,7 +1,7 @@
 export const prerender = false;
 import type { APIRoute } from "astro";
 import { assertSameOrigin, isAdminSessionValid } from "@lib/adminAuth";
-import { json } from "@lib/api";
+import { json, ADMIN_CACHE_LIST_HEADERS, ADMIN_CACHE_ITEM_HEADERS } from "@lib/api";
 import { sanitizePromotionPayload } from "@lib/adminPayloads";
 import { logAudit } from "@lib/audit";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
@@ -19,12 +19,12 @@ export const GET: APIRoute = async ({ cookies, url }) => {
   if (id) {
     const { data, error } = await supabase.from("promociones").select("*").eq("id", id).single();
     if (error) return json({ error: error.message }, 500);
-    return json({ data });
+    return json({ data }, 200, ADMIN_CACHE_ITEM_HEADERS);
   }
 
   const { data, error } = await supabase.from("promociones").select("*").order("nombre");
   if (error) return json({ error: error.message }, 500);
-  return json({ data });
+  return json({ data }, 200, ADMIN_CACHE_LIST_HEADERS);
 };
 
 export const POST: APIRoute = async ({ cookies, request }) => {

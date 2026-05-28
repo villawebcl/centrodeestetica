@@ -51,3 +51,64 @@ const site = {
   </section>
 </BaseLayout>
 
+<style>
+  .faq-list {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .faq-item {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 12px rgba(60, 40, 100, 0.06);
+    transition:
+      transform 300ms var(--ease),
+      box-shadow 300ms var(--ease),
+      border-color 300ms var(--ease),
+      background 300ms var(--ease);
+    padding: 0;
+  }
+
+  .faq-item:hover {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 12px 40px rgba(60, 40, 100, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .faq-item summary {
+    cursor: pointer;
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.3rem;
+    font-weight: 500;
+    list-style: none;
+    padding: 24px 28px;
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-item summary::after {
+    float: right;
+    color: var(--rose-dark);
+    content: "+";
+    font-family: Inter, sans-serif;
+    font-weight: 800;
+    transition: transform 240ms var(--ease);
+  }
+
+  .faq-item[open] summary::after {
+    transform: rotate(45deg);
+  }
+
+  .faq-item p {
+    margin: 0;
+    padding: 0 28px 26px;
+  }
+</style>
+

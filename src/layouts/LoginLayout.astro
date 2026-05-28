@@ -1,6 +1,5 @@
 ---
 import "../styles/global.css";
-import "../styles/admin.css";
 
 interface Props {
   siteName?: string;
@@ -31,3 +30,102 @@ const { siteName = "Mi Centro" } = Astro.props;
     </div>
   </body>
 </html>
+
+<style is:global>
+  .login-body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+
+  .login-root {
+    width: 100%;
+    max-width: 420px;
+    padding: 1.5rem;
+  }
+
+  .login-card {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 2.5rem 2.25rem 2.25rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 40px rgba(60, 40, 100, 0.1);
+  }
+
+  .login-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .login-brand__mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose-dark), #c084a0);
+    color: white;
+    display: grid;
+    place-items: center;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .login-brand__name {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  .login-brand__sub {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .login-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.75rem;
+    font-weight: 500;
+    color: var(--ink);
+    margin: 0 0 0.25rem;
+    line-height: 1.1;
+  }
+
+  .login-subtitle {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 0 0 1.5rem;
+  }
+
+  .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .login-error {
+    font-size: 0.85rem;
+    color: #c0392b;
+    background: rgba(220, 38, 38, 0.06);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.9rem;
+    margin: 0;
+  }
+</style>

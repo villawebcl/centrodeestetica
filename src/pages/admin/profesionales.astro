@@ -89,13 +89,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const closeBtn      = document.querySelector("#close-dialog-btn");
     const cancelBtn     = document.querySelector("#cancel-btn");
 
-    function showStatus(message, isError = false) {
-      formStatus.textContent = message;
-      formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
-      formStatus.hidden      = false;
-      setTimeout(() => { formStatus.hidden = true; }, 4000);
-    }
-
     function openDialog(editMode = false) {
       dialogEyebrow.textContent = editMode ? "Editar profesional" : "Nuevo profesional";
       dialogTitle.textContent   = editMode ? "Editar miembro" : "Añadir miembro";
@@ -110,22 +103,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     closeBtn.addEventListener("click", closeDialog);
     cancelBtn.addEventListener("click", closeDialog);
     dialog.addEventListener("click", (e) => { if (e.target === dialog) closeDialog(); });
-
-    function escapeHtml(v = "") {
-      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
-
-    async function uploadImage(file) {
-      if (!file || file.size === 0) return document.querySelector("#pro-foto-url").value;
-      const body = new FormData();
-      body.set("folder", "profesionales");
-      body.set("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || "No se pudo subir la imagen.");
-      return result.url;
-    }
 
     async function render() {
       const res    = await fetch("/api/admin/profesionales");
@@ -179,7 +156,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       const fd     = new FormData(form);
       const id     = document.querySelector("#pro-id").value;
       const isEdit = Boolean(id);
-      const fotoUrl = await uploadImage(document.querySelector("#pro-image-file").files[0]);
+      const fotoUrl = await uploadAdminImage("profesionales", document.querySelector("#pro-image-file").files[0], document.querySelector("#pro-foto-url").value);
       const payload = { nombre: fd.get("nombre"), rol: fd.get("rol"), especialidad: fd.get("especialidad"), bio: fd.get("bio"), foto_url: fotoUrl };
       try {
         const url  = "/api/admin/profesionales";
@@ -191,7 +168,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         if (!res.ok) throw new Error(r.error || "Error al guardar.");
         dialog.close(); resetForm(); await render();
         showToast(isEdit ? "Profesional actualizado." : "Profesional creado.");
-      } catch (err) { showStatus("Error: " + err.message, true); }
+      } catch (err) { showFormStatus(formStatus, "Error: " + err.message, true); }
       finally { saveBtn.disabled = false; saveBtn.textContent = id ? "Actualizar" : "Guardar"; }
     });
 

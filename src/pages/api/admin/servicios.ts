@@ -1,7 +1,7 @@
 export const prerender = false;
 import type { APIRoute } from "astro";
 import { assertSameOrigin, isAdminSessionValid } from "@lib/adminAuth";
-import { cleanString, json } from "@lib/api";
+import { cleanString, json, ADMIN_CACHE_LIST_HEADERS, ADMIN_CACHE_ITEM_HEADERS } from "@lib/api";
 import { sanitizeServicePayload, validateServicePayload } from "@lib/adminPayloads";
 import { logAudit } from "@lib/audit";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
@@ -26,14 +26,14 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     if (id) {
       const { data, error } = await supabase.from("servicios").select("*").eq("id", id).single();
       if (error) return json({ error: error.message }, 500);
-      return json({ data });
+      return json({ data }, 200, ADMIN_CACHE_ITEM_HEADERS);
     }
 
     const query = supabase.from("servicios").select("*").order("nombre").order("id");
     const { data, error } = await query;
     if (error) return json({ error: error.message }, 500);
 
-    return json({ data });
+    return json({ data }, 200, ADMIN_CACHE_LIST_HEADERS);
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Error inesperado" }, 500);
   }

@@ -23,6 +23,14 @@ export const PUBLIC_SHORT_CACHE_HEADERS = {
   "cdn-cache-control": "public, s-maxage=30"
 };
 
+export const ADMIN_CACHE_LIST_HEADERS = {
+  "cache-control": "private, max-age=0, must-revalidate"
+};
+
+export const ADMIN_CACHE_ITEM_HEADERS = {
+  "cache-control": "private, max-age=60"
+};
+
 export function getClientIp(request: Request) {
   return (
     request.headers.get("cf-connecting-ip") ||
