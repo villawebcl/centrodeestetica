@@ -26,6 +26,16 @@ export function safeEqual(a: string, b: string) {
   return result === 0;
 }
 
+export function isStrongPassword(password: string) {
+  return (
+    password.length >= 8 &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
+
 function bytesToHex(bytes: ArrayBuffer): string {
   return Array.from(new Uint8Array(bytes))
     .map(b => b.toString(16).padStart(2, "0"))
@@ -60,7 +70,7 @@ export async function verifyHashedPassword(password: string, stored: string): Pr
       "raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]
     );
     const derived = await crypto.subtle.deriveBits(
-      { name: "PBKDF2", salt, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, key, 256
+      { name: "PBKDF2", salt: salt.buffer as ArrayBuffer, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, key, 256
     );
     return safeEqual(bytesToHex(derived), stored.slice(idx + 1));
   } catch {
@@ -111,6 +121,15 @@ export async function setAdminSessionCookie(context: Pick<APIContext, "cookies" 
   });
 }
 
+export async function refreshAdminSessionCookie(context: Pick<APIContext, "cookies" | "url">) {
+  if (await isAdminSessionValid(context.cookies)) {
+    await setAdminSessionCookie(context);
+    return true;
+  }
+
+  return false;
+}
+
 export function clearAdminSessionCookie(context: Pick<APIContext, "cookies" | "url">) {
   context.cookies.delete(ADMIN_COOKIE, {
     path: "/",
@@ -122,7 +141,7 @@ export function clearAdminSessionCookie(context: Pick<APIContext, "cookies" | "u
 
 export function assertSameOrigin(request: Request, siteUrl: URL) {
   const origin = request.headers.get("origin");
-  if (!origin) return true;
+  if (!origin) return false;
 
   try {
     return new URL(origin).origin === siteUrl.origin;

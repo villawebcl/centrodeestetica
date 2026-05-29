@@ -2,6 +2,7 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { assertSameOrigin, isAdminSessionValid } from "@lib/adminAuth";
 import { cleanString, json } from "@lib/api";
+import { logAudit } from "@lib/audit";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
 
 const allowedStatuses = new Set(["pendiente", "confirmada", "completada", "cancelada"]);
@@ -23,7 +24,7 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       return json({ data });
     }
 
-    let query = supabase.from("reservas").select("*");
+    let query = supabase.from("reservas").select("*", { count: "exact" });
 
     const estado     = cleanString(url.searchParams.get("estado"),     30);
     const fecha      = cleanString(url.searchParams.get("fecha"),      10);
@@ -33,6 +34,8 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     const servicio   = cleanString(url.searchParams.get("servicio"),   100);
     const buscar     = cleanString(url.searchParams.get("buscar"),     100);
     const orden      = cleanString(url.searchParams.get("orden"),       20);
+    const page       = Math.max(1, Number(url.searchParams.get("page") || 1));
+    const pageSize   = Math.min(100, Math.max(10, Number(url.searchParams.get("pageSize") || 25)));
 
     if (estado && allowedStatuses.has(estado)) query = query.eq("estado", estado);
     if (fecha)       query = query.eq("fecha", fecha);
@@ -55,10 +58,12 @@ export const GET: APIRoute = async ({ cookies, url }) => {
       default:        query = query.order("creado_en", { ascending: false }); break; // reciente
     }
 
-    const { data, error } = await query;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
+    const { data, error, count } = await query.range(from, to);
     if (error) return json({ error: "No se pudieron cargar las reservas." }, 500);
 
-    return json({ data });
+    return json({ data, pagination: { page, pageSize, total: count ?? 0, totalPages: Math.max(1, Math.ceil((count ?? 0) / pageSize)) } });
   } catch (error) {
     console.error(error);
     return json({ error: "Error interno" }, 500);
@@ -87,6 +92,7 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
       .single();
 
     if (error) return json({ error: "No se pudo actualizar la reserva." }, 500);
+    await logAudit({ action: "update", entity: "reservas", entityId: id, details: { estado: cleanEstado } });
     return json({ data });
   } catch (error) {
     console.error(error);
@@ -113,6 +119,7 @@ export const DELETE: APIRoute = async ({ cookies, request }) => {
       .single();
 
     if (error) return json({ error: "No se pudo eliminar la reserva." }, 500);
+    await logAudit({ action: "delete", entity: "reservas", entityId: id });
     return json({ data });
   } catch (error) {
     console.error(error);

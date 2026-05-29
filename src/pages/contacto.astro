@@ -1,13 +1,31 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { services } from "@data/services";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+import { withTimeout } from "@lib/api";
+
+const [{ data: config }, { data: services }] = await withTimeout(Promise.all([
+  supabase.from("configuracion").select("*").single(),
+  supabase.from("servicios").select("nombre").filter("activo", "eq", true).order("nombre")
+]), 3000, [
+  { data: null, error: null },
+  { data: [], error: null }
+] as any);
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  phone: config?.telefono || "+56 9 8765 4321",
+  whatsappHref: `https://wa.me/${config?.whatsapp_number || "56987654321"}?text=Hola%2C%20quiero%20hacer%20una%20consulta`,
+  email: config?.email || "hola@luminaestetica.cl",
+  address: config?.direccion || "Av. Providencia 1234, Santiago",
+  hours: config?.horarios || "Lunes a sabado, 10:00 a 19:30"
+};
 ---
 
 <BaseLayout
   title="Contacto"
-  description="Contacto, horarios y solicitud de evaluacion en Lumina Estetica."
+  description={`Contacto, horarios y solicitud de evaluacion en ${site.name}.`}
+  brandConfig={config}
 >
   <section class="page-section">
     <SectionHeading
@@ -38,30 +56,124 @@ import { site } from "@data/site";
         </ul>
       </aside>
 
-      <form class="contact-box form">
+      <form class="contact-box form" id="contact-form">
         <label>
           Nombre
-          <input name="name" type="text" placeholder="Tu nombre" />
+          <input name="name" type="text" placeholder="Tu nombre" required />
         </label>
         <label>
           Telefono
           <input name="phone" type="tel" placeholder="+56 9 1234 5678" />
         </label>
         <label>
+          Email
+          <input name="email" type="email" placeholder="tu@email.cl" />
+        </label>
+        <label>
           Servicio de interes
           <select name="service">
             <option value="">Selecciona una opcion</option>
-            {services.map((service) => <option value={service.name}>{service.name}</option>)}
+            {services?.map((service: any) => <option value={service.nombre}>{service.nombre}</option>)}
           </select>
         </label>
         <label>
           Mensaje
-          <textarea name="message" placeholder="Cuentanos que necesitas"></textarea>
+          <textarea name="message" placeholder="Cuentanos que necesitas" required></textarea>
         </label>
-        <a class="button" href={site.whatsappHref} target="_blank" rel="noreferrer">
-          Enviar por WhatsApp
-        </a>
+        <label class="privacy-consent">
+          <input name="consent" type="checkbox" required />
+          <span>
+            Acepto que mis datos sean usados para responder esta consulta,
+            de acuerdo con la <a href="/politicas" target="_blank" rel="noreferrer">politica de privacidad</a>.
+          </span>
+        </label>
+        <button class="button" type="submit" id="contact-submit">Enviar consulta</button>
+        <p class="form-note" id="contact-feedback" aria-live="polite"></p>
+        <a href={site.whatsappHref} target="_blank" rel="noreferrer">Prefiero escribir por WhatsApp</a>
       </form>
     </div>
   </section>
+  <script src="../scripts/contacto.js"></script>
 </BaseLayout>
+
+<style>
+  .contact-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(320px, 1.15fr);
+    gap: 24px;
+  }
+
+  .contact-box {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 12px rgba(60, 40, 100, 0.06);
+    transition:
+      transform 300ms var(--ease),
+      box-shadow 300ms var(--ease),
+      border-color 300ms var(--ease),
+      background 300ms var(--ease);
+    padding: 28px;
+  }
+
+  .contact-box:hover {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 12px 40px rgba(60, 40, 100, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .contact-list {
+    display: grid;
+    gap: 16px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .contact-list span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .video-shot-list {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1.1fr);
+    gap: 24px;
+    align-items: start;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #f6f1ed;
+    padding: 32px;
+  }
+
+  .video-shot-list h2 {
+    margin: 0;
+    font-size: clamp(1.7rem, 3vw, 2.6rem);
+    line-height: 1.05;
+  }
+
+  .video-shot-list ol {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+    padding-left: 22px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  @media (max-width: 860px) {
+    .contact-layout,
+    .video-shot-list {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .video-shot-list {
+      padding: 22px;
+    }
+  }
+</style>

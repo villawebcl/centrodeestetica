@@ -2,7 +2,7 @@
 export const prerender = false;
 import LoginLayout from "@layouts/LoginLayout.astro";
 import { getClientIp, isRateLimited } from "@lib/api";
-import { setAdminSessionCookie, safeEqual, verifyHashedPassword } from "@lib/adminAuth";
+import { setAdminSessionCookie, safeEqual, verifyHashedPassword, isStrongPassword } from "@lib/adminAuth";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
 
 const supabase = createSupabaseAdminClient();
@@ -17,7 +17,7 @@ let error = "";
 if (Astro.request.method === "POST") {
   try {
     const ip = getClientIp(Astro.request);
-    if (isRateLimited(`admin-login:${ip}`, 8, 15 * 60 * 1000)) {
+    if (await isRateLimited(`admin-login:${ip}`, 8, 15 * 60 * 1000)) {
       error = "Demasiados intentos. Intenta nuevamente en unos minutos.";
     } else {
       const data = await Astro.request.formData();
@@ -28,7 +28,7 @@ if (Astro.request.method === "POST") {
         isValid = await verifyHashedPassword(password, config.password_hash);
       } else {
         const envPass = import.meta.env.ADMIN_PASSWORD ?? "";
-        isValid = envPass.length > 0 && safeEqual(password, envPass);
+        isValid = isStrongPassword(envPass) && safeEqual(password, envPass);
       }
 
       if (isValid) {

@@ -32,7 +32,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
           <label>
             Nueva contraseña
             <input type="password" id="new-password" name="new_password" required
-              placeholder="Mínimo 8 caracteres" autocomplete="new-password" minlength="8" />
+              placeholder="Mín. 8, Aa, número y símbolo" autocomplete="new-password" minlength="8" />
           </label>
           <label>
             Confirmar contraseña
@@ -42,7 +42,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         </div>
 
         <p class="field-hint">
-          Después de cambiarla, úsala la próxima vez que inicies sesión.
+          Usa al menos 8 caracteres con mayúscula, minúscula, número y símbolo.
           Si olvidaste la contraseña actual, pide ayuda al desarrollador.
         </p>
       </fieldset>
@@ -57,20 +57,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const form    = document.querySelector("#cuenta-form");
     const saveBtn = document.querySelector("#save-btn");
 
-    function showToast(message, isError = false) {
-      const tc    = document.querySelector("#toast-container");
-      const toast = document.createElement("div");
-      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
-      toast.setAttribute("role", "status");
-      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
-      tc.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
-      setTimeout(() => {
-        toast.classList.remove("svc-toast--visible");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-      }, 4500);
-    }
-
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       const newPass     = document.querySelector("#new-password").value;
@@ -78,6 +64,10 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
 
       if (newPass !== confirmPass) {
         showToast("Las contraseñas no coinciden.", true);
+        return;
+      }
+      if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}/.test(newPass)) {
+        showToast("La contraseña debe incluir mayúscula, minúscula, número y símbolo.", true);
         return;
       }
 

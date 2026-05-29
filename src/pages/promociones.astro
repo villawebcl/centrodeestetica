@@ -54,3 +54,63 @@ const site = {
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .promo-card {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 12px rgba(60, 40, 100, 0.06);
+    transition:
+      transform 300ms var(--ease),
+      box-shadow 300ms var(--ease),
+      border-color 300ms var(--ease),
+      background 300ms var(--ease);
+    display: flex;
+    min-height: 330px;
+    flex-direction: column;
+    gap: 14px;
+    padding: 30px;
+  }
+
+  .promo-card:hover {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 12px 40px rgba(60, 40, 100, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .promo-card h3 {
+    margin: 6px 0 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.7rem;
+    font-weight: 500;
+    line-height: 1.12;
+  }
+
+  .promo-card ul {
+    display: grid;
+    gap: 8px;
+    margin: 8px 0 0;
+    padding-left: 18px;
+    color: var(--muted);
+  }
+
+  .price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: auto;
+  }
+
+  .price-row strong {
+    color: var(--brand-secondary);
+    font-size: 1.55rem;
+  }
+
+  .price-row span {
+    color: rgba(117, 105, 101, 0.68);
+    text-decoration: line-through;
+  }
+</style>

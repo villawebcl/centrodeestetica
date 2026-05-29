@@ -2,6 +2,7 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { assertSameOrigin, isAdminSessionValid } from "@lib/adminAuth";
 import { cleanString, json } from "@lib/api";
+import { logAudit } from "@lib/audit";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
 
 async function requireAdmin(cookies: Parameters<APIRoute>[0]["cookies"]) {
@@ -9,6 +10,21 @@ async function requireAdmin(cookies: Parameters<APIRoute>[0]["cookies"]) {
 }
 
 const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
+const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function sanitizeSlots(value: unknown) {
+  const rawSlots = Array.isArray(value)
+    ? value
+    : String(value ?? "").split(",");
+
+  return Array.from(
+    new Set(
+      rawSlots
+        .map((slot) => cleanString(slot, 5))
+        .filter((slot) => timeRegex.test(slot))
+    )
+  ).slice(0, 24);
+}
 
 function sanitize(raw: Record<string, unknown>) {
   const color_primario   = cleanString(raw.color_primario, 7);
@@ -24,6 +40,7 @@ function sanitize(raw: Record<string, unknown>) {
     whatsapp_number: cleanString(raw.whatsapp_number,   30),
     color_primario:   hexColorRegex.test(color_primario)   ? color_primario   : "#000000",
     color_secundario: hexColorRegex.test(color_secundario) ? color_secundario : "#ffffff",
+    horario_slots: sanitizeSlots(raw.horario_slots),
   };
 }
 
@@ -46,5 +63,6 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from("configuracion").update(payload).eq("id", 1).select("id");
   if (error) return json({ error: error.message }, 500);
+  await logAudit({ action: "update", entity: "configuracion", entityId: "1", details: payload });
   return json({ data, updated: data?.length ?? 0 });
 };

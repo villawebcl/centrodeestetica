@@ -93,27 +93,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const closeBtn      = document.querySelector("#close-dialog-btn");
     const cancelBtn     = document.querySelector("#cancel-btn");
 
-    function showToast(message, isError = false) {
-      const tc    = document.querySelector("#toast-container");
-      const toast = document.createElement("div");
-      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
-      toast.setAttribute("role", "status");
-      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
-      tc.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
-      setTimeout(() => {
-        toast.classList.remove("svc-toast--visible");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-      }, 4000);
-    }
-
-    function showStatus(message, isError = false) {
-      formStatus.textContent = message;
-      formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
-      formStatus.hidden      = false;
-      setTimeout(() => { formStatus.hidden = true; }, 4000);
-    }
-
     function openDialog(editMode = false) {
       dialogEyebrow.textContent = editMode ? "Editar promoción" : "Nueva promoción";
       dialogTitle.textContent   = editMode ? "Editar oferta" : "Añadir oferta";
@@ -128,11 +107,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     closeBtn.addEventListener("click", closeDialog);
     cancelBtn.addEventListener("click", closeDialog);
     dialog.addEventListener("click", (e) => { if (e.target === dialog) closeDialog(); });
-
-    function escapeHtml(v = "") {
-      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
 
     async function render() {
       const res    = await fetch("/api/admin/promociones");
@@ -197,7 +171,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         if (!res.ok) throw new Error(r.error || "Error al guardar.");
         dialog.close(); resetForm(); await render();
         showToast(isEdit ? "Promoción actualizada." : "Promoción creada.");
-      } catch (err) { showStatus("Error: " + err.message, true); }
+      } catch (err) { showFormStatus(formStatus, "Error: " + err.message, true); }
       finally { saveBtn.disabled = false; saveBtn.textContent = id ? "Actualizar" : "Guardar"; }
     });
 

@@ -41,6 +41,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       <form id="service-form" class="booking-form">
         <input type="hidden" name="id" id="service-id" />
         <input type="hidden" name="originalNombre" id="service-original-nombre" />
+        <input type="hidden" name="imagen_url" id="service-imagen-url" />
 
         <label>
           Nombre del servicio
@@ -73,9 +74,15 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
           <textarea name="descripcion" id="service-descripcion" rows="3" placeholder="Breve descripción del tratamiento..."></textarea>
         </label>
 
+        <label>
+          Imagen del servicio
+          <input type="file" name="image_file" id="service-image-file" accept="image/png,image/jpeg,image/webp,image/avif" />
+        </label>
+        <p class="field-hint" id="service-image-current" hidden></p>
+
         <div class="svc-dialog__footer">
           <button type="button" class="button button--secondary" id="cancel-btn">Cancelar</button>
-          <button type="submit" class="button" id="save-btn">Guardar servicio</button>
+          <button type="submit" class="button" id="save-btn">Guardar</button>
         </div>
       </form>
     </div>
@@ -93,31 +100,10 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const openBtn       = document.querySelector("#open-dialog-btn");
     const closeBtn      = document.querySelector("#close-dialog-btn");
 
-    function showToast(message, isError = false) {
-      const tc    = document.querySelector("#toast-container");
-      const toast = document.createElement("div");
-      toast.className = `svc-toast${isError ? " svc-toast--error" : " svc-toast--success"}`;
-      toast.setAttribute("role", "status");
-      toast.innerHTML = `<span class="svc-toast__icon">${isError ? "✕" : "✓"}</span><span>${message}</span>`;
-      tc.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add("svc-toast--visible"));
-      setTimeout(() => {
-        toast.classList.remove("svc-toast--visible");
-        toast.addEventListener("transitionend", () => toast.remove(), { once: true });
-      }, 4000);
-    }
-
-    function showStatus(message, isError = false) {
-      formStatus.textContent = message;
-      formStatus.className   = isError ? "form-status form-status--error" : "form-status form-status--success";
-      formStatus.hidden      = false;
-      setTimeout(() => { formStatus.hidden = true; }, 4000);
-    }
-
     function openDialog(editMode = false) {
       dialogEyebrow.textContent = editMode ? "Editar servicio" : "Nuevo servicio";
       dialogTitle.textContent   = editMode ? "Editar tratamiento" : "Añadir tratamiento";
-      saveBtn.textContent       = editMode ? "Actualizar servicio" : "Guardar servicio";
+      saveBtn.textContent       = editMode ? "Actualizar" : "Guardar";
       formStatus.hidden         = true;
       dialog.showModal();
     }
@@ -128,11 +114,6 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     closeBtn.addEventListener("click", closeDialog);
     cancelBtn.addEventListener("click", closeDialog);
     dialog.addEventListener("click",   (e) => { if (e.target === dialog) closeDialog(); });
-
-    function escapeHtml(v = "") {
-      return String(v).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
 
     function normalizeKey(name) { return String(name || "").trim().toLowerCase(); }
 
@@ -178,6 +159,7 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
               <button class="svc-btn svc-btn--danger action-delete" data-name="${name}">Eliminar</button>
             </div>
           </div>
+          ${s.imagen_url ? `<img class="svc-card__image" src="${escapeHtml(s.imagen_url)}" alt="" loading="lazy">` : ""}
           <h3 class="svc-card__name">${name}</h3>
           <p class="svc-card__desc">${escapeHtml(s.descripcion || "Sin descripción")}</p>
           <div class="svc-card__price">
@@ -196,9 +178,11 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       const id     = document.querySelector("#service-id").value;
       const orig   = document.querySelector("#service-original-nombre").value;
       const isEdit = Boolean(id);
+      const imageUrl = await uploadAdminImage("servicios", document.querySelector("#service-image-file").files[0], document.querySelector("#service-imagen-url").value);
       const payload = {
         nombre: fd.get("nombre"), categoria: fd.get("categoria"),
         duracion: fd.get("duracion"), precio: fd.get("precio"), descripcion: fd.get("descripcion"),
+        imagen_url: imageUrl,
       };
       try {
         const url  = "/api/admin/servicios";
@@ -210,10 +194,10 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         if (!res.ok) throw new Error(r.error || "Error al guardar.");
         dialog.close(); resetForm(); await render();
         showToast(isEdit ? "Servicio actualizado." : "Servicio creado.");
-      } catch (err) { showStatus("Error: " + err.message, true); }
+      } catch (err) { showFormStatus(formStatus, "Error: " + err.message, true); }
       finally {
         saveBtn.disabled    = false;
-        saveBtn.textContent = id ? "Actualizar servicio" : "Guardar servicio";
+        saveBtn.textContent = id ? "Actualizar" : "Guardar";
       }
     });
 
@@ -249,6 +233,10 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         document.querySelector("#service-duracion").value        = d.duracion;
         document.querySelector("#service-precio").value          = d.precio;
         document.querySelector("#service-descripcion").value     = d.descripcion;
+        document.querySelector("#service-imagen-url").value      = d.imagen_url || "";
+        const current = document.querySelector("#service-image-current");
+        current.hidden = !d.imagen_url;
+        current.textContent = d.imagen_url ? "Imagen actual cargada. Sube otra para reemplazarla." : "";
         openDialog(true);
       }
     });
@@ -257,6 +245,8 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       form.reset();
       document.querySelector("#service-id").value              = "";
       document.querySelector("#service-original-nombre").value = "";
+      document.querySelector("#service-imagen-url").value      = "";
+      document.querySelector("#service-image-current").hidden  = true;
     }
 
     render();

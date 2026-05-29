@@ -122,6 +122,11 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
 
     <div class="appointment-list" id="appointment-list"></div>
     <p class="empty-state" id="empty-state" hidden>Todavía no hay reservas.</p>
+    <div class="admin-pagination" aria-label="Paginacion de reservas">
+      <button type="button" class="button button--secondary" id="prev-page">Anterior</button>
+      <span id="page-status">Pagina 1 de 1</span>
+      <button type="button" class="button button--secondary" id="next-page">Siguiente</button>
+    </div>
   </div>
 
   <script type="module" is:inline>
@@ -138,7 +143,12 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     const exportCsv          = document.querySelector("#export-csv");
     const viewListBtn        = document.querySelector("#view-list");
     const viewGridBtn        = document.querySelector("#view-grid");
+    const prevPageBtn        = document.querySelector("#prev-page");
+    const nextPageBtn        = document.querySelector("#next-page");
+    const pageStatus         = document.querySelector("#page-status");
     let currentFilter = "todas";
+    let currentPage = 1;
+    const pageSize = 25;
     let searchDebounce;
 
     const savedView = localStorage.getItem("admin-view") || "list";
@@ -177,12 +187,9 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         .format(new Date(value));
     }
 
-    function escapeHtml(value = "") {
-      return String(value).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;").replaceAll("'","&#039;");
-    }
 
-    function buildParams() {
+
+    function buildParams(includePagination = true) {
       const params = new URLSearchParams();
       if (currentFilter !== "todas")    params.set("estado",      currentFilter);
       if (searchFilter.value.trim())    params.set("buscar",      searchFilter.value.trim());
@@ -191,14 +198,18 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       if (dateToFilter.value)           params.set("hasta",       dateToFilter.value);
       if (professionalFilter.value)     params.set("profesional", professionalFilter.value);
       if (serviceFilter.value)          params.set("servicio",    serviceFilter.value);
+      if (includePagination) {
+        params.set("page", String(currentPage));
+        params.set("pageSize", String(pageSize));
+      }
       return params;
     }
 
     async function fetchAppointments() {
       const res = await fetch(`/api/admin/reservas?${buildParams()}`);
       const r   = await res.json();
-      if (!res.ok) { console.error(r.error); return []; }
-      return r.data || [];
+      if (!res.ok) { console.error(r.error); return { data: [], pagination: { page: 1, totalPages: 1, total: 0 } }; }
+      return { data: r.data || [], pagination: r.pagination || { page: 1, totalPages: 1, total: 0 } };
     }
 
     async function fetchMetrics() {
@@ -243,10 +254,16 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
     }
 
     async function render() {
-      const filtered = await fetchAppointments();
+      list.setAttribute("aria-busy", "true");
+      list.innerHTML = `<div class="admin-loading">Cargando reservas...</div>`;
+      const { data: filtered, pagination } = await fetchAppointments();
       fetchMetrics();
       list.innerHTML = "";
+      list.removeAttribute("aria-busy");
       emptyState.hidden = filtered.length > 0;
+      pageStatus.textContent = `Pagina ${pagination.page} de ${pagination.totalPages} · ${pagination.total} reservas`;
+      prevPageBtn.disabled = pagination.page <= 1;
+      nextPageBtn.disabled = pagination.page >= pagination.totalPages;
       filtered.forEach((a) => {
         const article = document.createElement("article");
         const status  = getSafeStatus(a.estado);
@@ -283,17 +300,19 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
         filterButtons.forEach((b) => b.classList.remove("is-active"));
         btn.classList.add("is-active");
         currentFilter = btn.dataset.filter;
+        currentPage = 1;
         render();
       });
     });
 
     searchFilter.addEventListener("input", () => {
       clearTimeout(searchDebounce);
+      currentPage = 1;
       searchDebounce = setTimeout(render, 380);
     });
 
     [sortFilter, dateFromFilter, dateToFilter, professionalFilter, serviceFilter]
-      .forEach(el => el.addEventListener("change", render));
+      .forEach(el => el.addEventListener("change", () => { currentPage = 1; render(); }));
 
     clearFilters.addEventListener("click", () => {
       currentFilter = "todas";
@@ -302,11 +321,12 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
       professionalFilter.value = ""; serviceFilter.value = "";
       filterButtons.forEach(b => b.classList.remove("is-active"));
       document.querySelector('[data-filter="todas"]')?.classList.add("is-active");
+      currentPage = 1;
       render();
     });
 
     exportCsv.addEventListener("click", async () => {
-      const res = await fetch(`/api/admin/reservas?${buildParams()}`);
+      const res = await fetch(`/api/admin/reservas?${buildParams(false)}&page=1&pageSize=100`);
       const r   = await res.json();
       if (!res.ok) return;
       const rows    = r.data || [];
@@ -322,11 +342,23 @@ const siteName = config?.nombre_negocio || "Lumina Estetica";
           row.estado, formatCreatedAt(row.creado_en)
         ].join(","))
       ].join("\n");
-      const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href = url; a.download = `reservas_${new Date().toISOString().slice(0,10)}.csv`;
       a.click(); URL.revokeObjectURL(url);
+    });
+
+    prevPageBtn.addEventListener("click", () => {
+      if (currentPage > 1) {
+        currentPage -= 1;
+        render();
+      }
+    });
+
+    nextPageBtn.addEventListener("click", () => {
+      currentPage += 1;
+      render();
     });
 
     list.addEventListener("click", async (e) => {

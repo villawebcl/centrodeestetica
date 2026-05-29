@@ -1,12 +1,26 @@
 ---
 import SectionHeading from "@components/SectionHeading.astro";
 import BaseLayout from "@layouts/BaseLayout.astro";
-import { site } from "@data/site";
+import { supabase } from "@lib/supabase";
+import { withTimeout } from "@lib/api";
+
+const { data: config } = await withTimeout(
+  supabase.from("configuracion").select("nombre_negocio, email, whatsapp_number").single(),
+  2500,
+  { data: null, error: null } as any
+);
+
+const site = {
+  name: config?.nombre_negocio || "Lumina Estetica",
+  email: config?.email || "hola@luminaestetica.cl",
+  whatsappHref: `https://wa.me/${config?.whatsapp_number || "56987654321"}?text=Hola%2C%20tengo%20una%20consulta%20sobre%20mis%20datos`
+};
 ---
 
 <BaseLayout
-  title="Politica de reservas"
-  description="Politica de reservas, atrasos y reprogramaciones de Lumina Estetica."
+  title="Politicas y privacidad"
+  description={`Politicas de reservas y privacidad de ${site.name}.`}
+  brandConfig={config}
 >
   <section class="page-section">
     <SectionHeading
@@ -16,6 +30,26 @@ import { site } from "@data/site";
     />
 
     <div class="policy-grid">
+      <article class="feature">
+        <strong>Datos personales</strong>
+        <p>Los formularios recopilan nombre, telefono, email opcional, servicio de interes, fecha, hora y mensaje para responder consultas y gestionar reservas.</p>
+      </article>
+      <article class="feature">
+        <strong>Finalidad y consentimiento</strong>
+        <p>Usamos tus datos solo para contactarte, coordinar atenciones, confirmar disponibilidad y mantener registro operativo de solicitudes.</p>
+      </article>
+      <article class="feature">
+        <strong>Conservacion</strong>
+        <p>Los datos se conservan mientras sean necesarios para administrar reservas, historial de atencion y obligaciones operativas o legales.</p>
+      </article>
+      <article class="feature">
+        <strong>Derechos</strong>
+        <p>Puedes pedir acceso, rectificacion o eliminacion de tus datos escribiendo a <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
+      </article>
+      <article class="feature">
+        <strong>Cookies tecnicas</strong>
+        <p>El sitio usa cookies estrictamente necesarias para la sesion del admin y almacenamiento local para recordar el aviso de privacidad. No usamos cookies de publicidad o analitica en esta version.</p>
+      </article>
       <article class="feature">
         <strong>Confirmacion</strong>
         <p>Tu solicitud queda pendiente hasta que nuestro equipo confirme disponibilidad por telefono o WhatsApp.</p>
@@ -43,3 +77,43 @@ import { site } from "@data/site";
     </div>
   </section>
 </BaseLayout>
+
+<style>
+  .policy-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+    margin-bottom: 28px;
+  }
+
+  .feature {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 12px rgba(60, 40, 100, 0.06);
+    transition:
+      transform 300ms var(--ease),
+      box-shadow 300ms var(--ease),
+      border-color 300ms var(--ease),
+      background 300ms var(--ease);
+    padding: 28px;
+  }
+
+  .feature:hover {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 12px 40px rgba(60, 40, 100, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .feature strong {
+    color: var(--rose-dark);
+  }
+
+  @media (max-width: 860px) {
+    .policy-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -11,6 +11,8 @@ interface Props {
     duration?: string;
     price?: string;
     description?: string;
+    imagen_url?: string;
+    image?: string;
   };
 }
 
@@ -22,11 +24,13 @@ const data = {
   category: service.categoria || service.category || "General",
   duration: service.duracion || service.duration || "",
   price: service.precio || service.price || "",
-  description: service.descripcion || service.description || ""
+  description: service.descripcion || service.description || "",
+  image: service.imagen_url || service.image || ""
 };
 ---
 
 <article class="service-card">
+  {data.image && <img class="service-card__image" src={data.image} alt="" loading="lazy" decoding="async" />}
   <div class="service-card__meta">
     <span class={`service-card__category service-card__category--${data.category.toLowerCase()}`}>
       {data.category}
@@ -37,3 +41,94 @@ const data = {
   <p>{data.description}</p>
   <strong>{data.price}</strong>
 </article>
+
+<style>
+  .service-card {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 2px 12px rgba(60, 40, 100, 0.06);
+    transition:
+      transform 300ms var(--ease),
+      box-shadow 300ms var(--ease),
+      border-color 300ms var(--ease),
+      background 300ms var(--ease);
+  }
+
+  .service-card:hover {
+    border-color: rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.68);
+    box-shadow: 0 12px 40px rgba(60, 40, 100, 0.12);
+    transform: translateY(-4px);
+  }
+
+  .service-card {
+    display: flex;
+    min-height: 300px;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 28px;
+  }
+
+  .service-card__image {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+
+  .service-card__meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--sage);
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .service-card h3 {
+    margin: 18px 0 0;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.55rem;
+    font-weight: 500;
+    line-height: 1.18;
+  }
+
+  .service-card strong {
+    color: var(--brand-secondary);
+  }
+
+  .service-card__category {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .service-card__category::before {
+    content: "";
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--sage);
+    flex-shrink: 0;
+  }
+
+  .service-card__category--facial::before {
+    background: var(--rose);
+  }
+
+  .service-card__category--mirada::before {
+    background: #9b7ecb;
+  }
+
+  .service-card__category--corporal::before {
+    background: var(--gold);
+  }
+
+  .service-card__category--asesoria::before {
+    background: var(--rose-dark);
+  }
+</style>

@@ -1,11 +1,11 @@
 export const prerender = false;
 import type { APIRoute } from "astro";
-import { getClientIp, isRateLimited, json } from "@lib/api";
-import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
+import { getClientIp, isRateLimited, json, PUBLIC_SHORT_CACHE_HEADERS } from "@lib/api";
+import { supabase } from "@lib/supabase";
 
 export const GET: APIRoute = async ({ request, url }) => {
   const ip = getClientIp(request);
-  if (isRateLimited(`disponibilidad:${ip}`, 60, 60 * 1000)) {
+  if (await isRateLimited(`disponibilidad:${ip}`, 60, 60 * 1000)) {
     return json({ error: "Demasiadas solicitudes." }, 429);
   }
 
@@ -17,19 +17,16 @@ export const GET: APIRoute = async ({ request, url }) => {
   }
 
   try {
-    const supabase = createSupabaseAdminClient();
-    const { data, error } = await supabase
-      .from("reservas")
-      .select("hora")
-      .eq("fecha", fecha)
-      .eq("profesional_nombre", profesional.trim())
-      .in("estado", ["pendiente", "confirmada"]);
+    const { data, error } = await supabase.rpc("get_booked_slots", {
+      p_fecha: fecha,
+      p_profesional_nombre: profesional.trim()
+    });
 
     if (error) return json({ error: "Error al consultar disponibilidad." }, 500);
 
     // Normalize "HH:MM:SS" → "HH:MM" for comparison with form slots
-    const booked = (data ?? []).map((r) => String(r.hora).slice(0, 5));
-    return json({ booked });
+    const booked = ((data ?? []) as Array<{ hora: string }>).map((r) => String(r.hora).slice(0, 5));
+    return json({ booked }, 200, PUBLIC_SHORT_CACHE_HEADERS);
   } catch {
     return json({ error: "Error interno." }, 500);
   }

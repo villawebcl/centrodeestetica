@@ -1,7 +1,9 @@
 export const prerender = false;
 import type { APIRoute } from "astro";
 import { assertSameOrigin, isAdminSessionValid } from "@lib/adminAuth";
-import { cleanString, json } from "@lib/api";
+import { cleanString, json, ADMIN_CACHE_LIST_HEADERS, ADMIN_CACHE_ITEM_HEADERS } from "@lib/api";
+import { sanitizeServicePayload, validateServicePayload } from "@lib/adminPayloads";
+import { logAudit } from "@lib/audit";
 import { createSupabaseAdminClient } from "@lib/supabaseAdmin";
 
 async function requireAdmin(cookies: Parameters<APIRoute>[0]["cookies"]) {
@@ -10,25 +12,6 @@ async function requireAdmin(cookies: Parameters<APIRoute>[0]["cookies"]) {
 
 function getSupabaseAdmin() {
   return createSupabaseAdminClient();
-}
-
-const allowedCategories = new Set(["Facial", "Corporal", "Mirada", "Asesoria"]);
-
-function sanitizeServicePayload(raw: Record<string, unknown>) {
-  const categoria = cleanString(raw.categoria, 40);
-
-  return {
-    nombre: cleanString(raw.nombre, 90),
-    categoria: allowedCategories.has(categoria) ? categoria : "Facial",
-    duracion: cleanString(raw.duracion, 30),
-    precio: cleanString(raw.precio, 40),
-    descripcion: cleanString(raw.descripcion, 700)
-  };
-}
-
-function validateServicePayload(payload: ReturnType<typeof sanitizeServicePayload>) {
-  if (!payload.nombre) return "El nombre del servicio es obligatorio.";
-  return null;
 }
 
 export const GET: APIRoute = async ({ cookies, url }) => {
@@ -43,14 +26,14 @@ export const GET: APIRoute = async ({ cookies, url }) => {
     if (id) {
       const { data, error } = await supabase.from("servicios").select("*").eq("id", id).single();
       if (error) return json({ error: error.message }, 500);
-      return json({ data });
+      return json({ data }, 200, ADMIN_CACHE_ITEM_HEADERS);
     }
 
     const query = supabase.from("servicios").select("*").order("nombre").order("id");
     const { data, error } = await query;
     if (error) return json({ error: error.message }, 500);
 
-    return json({ data });
+    return json({ data }, 200, ADMIN_CACHE_LIST_HEADERS);
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Error inesperado" }, 500);
   }
@@ -77,6 +60,7 @@ export const POST: APIRoute = async ({ cookies, request }) => {
       .single();
 
     if (error) return json({ error: error.message }, 500);
+    await logAudit({ action: "create", entity: "servicios", entityId: data.id, details: payload });
 
     return json({ data }, 201);
   } catch (error) {
@@ -120,6 +104,7 @@ export const PATCH: APIRoute = async ({ cookies, request }) => {
     if (!data || data.length === 0) {
       return json({ error: "No se actualizó ningún servicio." }, 409);
     }
+    await logAudit({ action: "update", entity: "servicios", entityId: String(data[0]?.id ?? id ?? serviceName), details: payload });
 
     return json({ data, updated: data.length });
   } catch (error) {
@@ -151,6 +136,7 @@ export const DELETE: APIRoute = async ({ cookies, request }) => {
 
     const { data, error } = await query;
     if (error) return json({ error: error.message }, 500);
+    await logAudit({ action: "delete", entity: "servicios", entityId: String(data?.[0]?.id ?? id ?? serviceName), details: { nombre: serviceName } });
 
     return json({ data, deleted: data?.length ?? 0 });
   } catch (error) {
